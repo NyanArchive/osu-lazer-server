@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.3" />
+      <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="7.0.0-preview.1.22109.13" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0-preview.1.22076.6" />
+      <PackageReference Include="Nager.Country" Version="3.1.1" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.0-preview.1" />
+      <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.0" />
+      <PackageReference Include="UniqueIdGenerator" Version="2.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\osu\osu.Game.Rulesets.Catch\osu.Game.Rulesets.Catch.csproj" />
+      <ProjectReference Include="..\osu\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj" />
+      <ProjectReference Include="..\osu\osu.Game.Rulesets.Osu\osu.Game.Rulesets.Osu.csproj" />
+      <ProjectReference Include="..\osu\osu.Game.Rulesets.Taiko\osu.Game.Rulesets.Taiko.csproj" />
+    </ItemGroup>
+
+</Project>

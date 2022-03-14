@@ -1,0 +1,58 @@
+﻿using Microsoft.EntityFrameworkCore;
+using OsuLazerServer.Database.Tables;
+using OsuLazerServer.Database.Tables.Scores;
+
+namespace OsuLazerServer.Database;
+
+public class LazerContext : DbContext
+{
+
+    public DbSet<User> Users { get; set; }
+    public DbSet<UsersStatsOsu> OsuStats { get; set; }
+    public DbSet<UsersStatsTaiko> TaikoStats { get; set; }
+    public DbSet<UsersStatsFruits> FruitsStats { get; set; }
+    public DbSet<UsersStatsMania> ManiaStats { get; set; }
+    public DbSet<DbScore> Scores { get;set; }
+
+    public LazerContext()
+    {
+        Database.EnsureCreated();
+    }
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseNpgsql(
+            "Host=localhost;Port=5432;Database=lazer;Username=postgres;Password=123321");
+    }
+
+    public async Task<User> CreateBot()
+    {
+        if (await Users.FirstOrDefaultAsync(u => u.Id == 1) is null)
+        {
+            var entity = await Users.AddAsync(new User
+            {
+                Username = "Oleg",
+                Email = "admin@ppy.sh",
+                Country = "UA",
+                Password = "",
+                NicknameHistory = new string[] {},
+                PlayCount = 0,
+                ReplaysWatches = 0,
+                StatsFruits = new UsersStatsFruits(),
+                StatsMania = new UsersStatsMania(),
+                StatsOsu = new UsersStatsOsu(),
+                StatsTaiko = new UsersStatsTaiko(),
+                Banned = true
+            });
+
+            await SaveChangesAsync();
+            return entity.Entity;
+        }
+
+        return new User();
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
+}
