@@ -48,18 +48,38 @@ public class User
     [Column("joined_at")] public DateTime JoinedAt { get; set; }
 
 
-    public async Task FetchUserStats(LazerContext context)
+    public async Task FetchUserStats()
     {
-        StatsOsu = await context.OsuStats.FirstAsync(s => s.Id == Id);
-        StatsTaiko = await context.TaikoStats.FirstAsync(s => s.Id == Id);
-        StatsMania = await context.ManiaStats.FirstAsync(s => s.Id == Id);
-        StatsFruits = await context.FruitsStats.FirstAsync(s => s.Id == Id);
+        var ctx = new LazerContext { Database = { AutoTransactionsEnabled = false}};
+        StatsOsu = await ctx.OsuStats.FirstAsync(s => s.Id == Id);
+        StatsTaiko = await ctx.TaikoStats.FirstAsync(s => s.Id == Id);
+        StatsMania = await ctx.ManiaStats.FirstAsync(s => s.Id == Id);
+        StatsFruits = await ctx.FruitsStats.FirstAsync(s => s.Id == Id);
+    }
+
+    public IUserStats FetchStats(string mode) => ModeUtils.FetchUserStats(new LazerContext(), mode, Id);
+
+    public IUserStats GetStats(string mode)
+    {
+        switch (mode)
+        {
+            case "osu":
+                return StatsOsu;
+            case "taiko":
+                return StatsTaiko;
+            case "fruits":
+                return StatsFruits;
+            case "mania":
+                return StatsMania;
+            default:
+                return StatsOsu;
+        }
     }
 
 
-    public async Task<APIUser> ToOsuUser(string mode, LazerContext context)
+    public APIUser ToOsuUser(string mode, LazerContext context)
     {
-        var stats = await ModeUtils.FetchUserStats(context, mode, Id);
+        var stats = ModeUtils.FetchUserStats(context, mode, Id);
         return new APIUser
         {
             Username = Username,
@@ -83,32 +103,39 @@ public class User
             {
                 Level = new Level
                 {
-                    Current = stats.Level,
-                    Progress = stats.LevelProgress
+                    Current = stats?.Level??0,
+                    Progress = stats?.LevelProgress??0
                 },
-                TotalHits = (int) stats.TotalHits,
-                TotalScore = stats.TotalScore,
+                TotalHits = (int) (stats?.TotalHits ?? 0),
+                TotalScore = stats?.TotalScore??0,
                 CountryRank = 1,
                 GlobalRank = 1,
                 GradeCounts = new GradeCounts
                 {
-                    A = await context.Scores.CountAsync(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id),
-                    S = await context.Scores.CountAsync(s => s.Passed && s.Rank == ScoreRank.S && s.UserId == Id),
-                    Sh = await context.Scores.CountAsync(s => s.Passed && s.Rank == ScoreRank.SH && s.UserId == Id),
-                    Ss = await context.Scores.CountAsync(s => s.Passed && s.Rank == ScoreRank.X && s.UserId == Id),
-                    Ssh = await context.Scores.CountAsync(s => s.Passed && s.Rank == ScoreRank.XH && s.UserId == Id),
+                    A = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id),
+                    S = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.S && s.UserId == Id),
+                    Sh = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.SH && s.UserId == Id),
+                    Ss = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.X && s.UserId == Id),
+                    Ssh = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.XH && s.UserId == Id),
                 },
-                RankedScore = stats.RankedScore,
-                PP = stats.PerfomancePoints,
+                RankedScore = stats?.RankedScore??0,
+                PP = stats?.PerfomancePoints??0,
                 ReplaysWatchedByOthers = ReplaysWatches,
-                HitAccuracy = stats.Accuracy * 100,
+                HitAccuracy = stats?.Accuracy??0 * 100,
                 IsRanked = true,
-                MaximumCombo = stats.MaxCombo,
+                MaximumCombo = stats?.MaxCombo??0,
                 PlayCount = PlayCount,
                 PlayTime = 0,
             },
-            ScoresBestCount = await context.Scores.Where(c => c.Passed && c.Status == DbScoreStatus.BEST && c.UserId == Id).Take(50).CountAsync(),
-            ScoresRecentCount = await context.Scores.Where(c => c.Passed && c.UserId == Id).Take(50).CountAsync()
+            ScoresBestCount = context.Scores.Where(c => c.Passed && c.Status == DbScoreStatus.BEST && c.UserId == Id).Take(50).Count(),
+            ScoresRecentCount = context.Scores.Where(c => c.Passed && c.UserId == Id).Take(50).Count(),
+            IsActive = true,
+            ProfileOrder = new List<string>()
+            {
+                "me",
+                "top_ranks",
+                "recent_activity"
+            }
         };
     }
 }

@@ -51,5 +51,5 @@ public class APIScore
     public object Mods { get;set; }
     
     [JsonPropertyName("rank")]
-    public ScoreRank Rank { get; set; }
+    public string Rank { get; set; }
 }

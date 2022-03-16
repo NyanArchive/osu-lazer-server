@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using osu.Game.Utils;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables;
@@ -26,19 +28,15 @@ public class MeController : Controller
         _storage = storage;
         _context = context;
     }
-
-
-    
     [Authorization]
     [HttpGet]
     public async Task<IActionResult> Index()
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
-        await user.FetchUserStats(_context);
-        
-        var stats = ModeUtils.GetStatsByMode("osu", user);
-        return Json(await user.ToOsuUser("osu", _context));
+        await user.FetchUserStats();
+
+        return Json(user.ToOsuUser("osu", _context));
     }
 
     [Authorization]

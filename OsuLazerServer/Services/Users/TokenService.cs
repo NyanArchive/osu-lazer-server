@@ -9,7 +9,8 @@ public class TokenService : ITokensService
         return new OAuthToken
         {
             AccessToken = Guid.NewGuid().ToString().Replace("-", ""),
-            ExpiresIn = DateTimeOffset.Now.AddDays(31).ToUnixTimeSeconds()
+            ExpiresIn = DateTimeOffset.Now.AddDays(31).ToUnixTimeSeconds(),
+            RefreshToken = Guid.NewGuid().ToString().Replace("-", "")
         };
     }
 }

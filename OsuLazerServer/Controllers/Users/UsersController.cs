@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables;
+using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Users;
+using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 
@@ -18,11 +20,15 @@ public class UsersController : Controller
 
     private ITokensService _tokensService;
     private LazerContext _context;
+    private IUserStorage _storage;
+    private IBeatmapSetResolver _resolver;
 
-    public UsersController(LazerContext context, ITokensService tokensService)
+    public UsersController(LazerContext context, ITokensService tokensService, IUserStorage storage, IBeatmapSetResolver resolver)
     {
         _tokensService = tokensService;
         _context = context;
+        _storage = storage;
+        _resolver = resolver;
     }
 
 
@@ -45,11 +51,21 @@ public class UsersController : Controller
         if (user is null)
             return NotFound();
 
-        var osuUser = await user.ToOsuUser(mode, _context);
+        var osuUser = user.ToOsuUser(mode, _context);
+
+        if (_storage.Users.Values.Any(c => c.Id == user.Id))
+            osuUser.IsOnline = true;
         return Json(osuUser);
     }
-    
-    
+
+    [HttpGet("/api/v2/users/{id}/scores/best")]
+    [Authorization]
+    public async Task<IActionResult> GetBestScores([FromRoute(Name = "id")] int id, [FromQuery(Name = "limit")] int limit, [FromQuery(Name = "offset")] int offset)
+    {
+        var scores = _context.Scores.Where(c => c.UserId == id && c.Status == DbScoreStatus.BEST).OrderByDescending(c => c.PerfomancePoints).Skip(offset).Take(limit);
+
+        return Json(scores.Select(c => c.ToOsuScore(_resolver).GetAwaiter().GetResult()));
+    }
     private async Task<IActionResult> GenerateRegistrationError(RegistrationRequestErrors.UserErrors errors)
     {
         Response.StatusCode = 401;

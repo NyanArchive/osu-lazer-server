@@ -13,6 +13,7 @@ public class LazerContext : DbContext
     public DbSet<UsersStatsFruits> FruitsStats { get; set; }
     public DbSet<UsersStatsMania> ManiaStats { get; set; }
     public DbSet<DbScore> Scores { get;set; }
+    public DbSet<Channel> Channels { get; set; }
 
     public LazerContext()
     {
@@ -41,14 +42,35 @@ public class LazerContext : DbContext
                 StatsMania = new UsersStatsMania(),
                 StatsOsu = new UsersStatsOsu(),
                 StatsTaiko = new UsersStatsTaiko(),
+                JoinedAt = DateTime.UtcNow,
                 Banned = true
             });
 
             await SaveChangesAsync();
-            return entity.Entity;
+        }
+
+        if (!(await Channels.AnyAsync()))
+        {
+            //Creating osu! channel
+            await InitializeChannels();
         }
 
         return new User();
+    }
+
+    private async Task InitializeChannels()
+    {
+
+        await Channels.AddAsync(new Channel
+        {
+            Description = "Main channel",
+            AllowedWrite = true,
+            Name = "osu",
+            Type = ChannelType.PUBLIC
+        });
+
+
+        await SaveChangesAsync();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

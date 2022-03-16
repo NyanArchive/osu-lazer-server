@@ -7,12 +7,12 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
 {
     public Dictionary<int, object> BeatmapsCache { get; set; } = new();
 
-    public async Task<List<BeatmapSet>> FetchSets(string query, string mode, int offset, bool nsfw, string status = "any")
+    public async Task<List<BeatmapSet?>> FetchSets(string query, string mode, int offset, bool nsfw, string status = "any")
     {
         var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
 
         if (!request.IsSuccessStatusCode)
-            return new List<BeatmapSet>();
+            return null;
         var body = JsonSerializer.Deserialize<List<BeatmapSet>>(await request.Content.ReadAsStringAsync());
 
 

@@ -23,7 +23,11 @@ public class DbScore
     {
         return await ctx.Users.FirstOrDefaultAsync(s => s.Id == UserId);
     }
-    
+    public User? GetUser(LazerContext ctx)
+    {
+        return ctx.Users.FirstOrDefault(s => s.Id == UserId);
+    }
+
     
     [Column("beatmap_id")] [Required] public int BeatmapId { get; set; }
     
@@ -50,8 +54,9 @@ public class DbScore
 
     [Column("passed")]
     public bool Passed { get; set; }
-    public async Task<APIScore> ToOsuScore(LazerContext ctx, IBeatmapSetResolver? resolver = null)
+    public async Task<APIScore> ToOsuScore(IBeatmapSetResolver? resolver = null)
     {
+        var ctx = new LazerContext();
         var beatmap = resolver is not null ? (await resolver.FetchBeatmap(BeatmapId)) : null;
         return new APIScore
         {
@@ -59,10 +64,10 @@ public class DbScore
             Beatmap = beatmap?.ToOsu(),
             beatmapSet = resolver is not null ? (await resolver.FetchSetAsync(beatmap.BeatmapsetId)).ToBeatmapSet() : null,
             Date = SubmittedAt,
-            Rank = Rank,
+            Rank = ModeUtils.CalculateRank(this),
             Statistics = HitResultStats.FromJson(Statistics).ToOsu(),
             User =
-                await (await GetUserAsync(ctx))?.ToOsuUser(Enum.GetName(typeof(RulesetId), RuleSetId) ?? "osu", ctx) ??
+                (await GetUserAsync(ctx))?.ToOsuUser(Enum.GetName(typeof(RulesetId), RuleSetId) ?? "osu", ctx) ??
                 new APIUser {Id = 1, Username = "Bancho bot"},
             HasReplay = false,
             Mods = Mods.ToArray(),

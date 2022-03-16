@@ -9,5 +9,5 @@ public interface IBeatmapSetResolver
 
     public Task<BeatmapSet?> FetchSetAsync(int setId);
 
-    public Task<Beatmap> FetchBeatmap(int beatmapId);
+    public Task<Beatmap?> FetchBeatmap(int beatmapId);
 }

@@ -41,6 +41,19 @@ public class BeatmapsController : Controller
         _storage = storage;
     }
 
+    [HttpGet("/api/v2/beatmaps/lookup")]
+    [Authorization]
+    public async Task<IActionResult> LookUpBeatmapAsync([FromQuery(Name = "id")] int id, [FromQuery(Name = "checksum")] string checksum)
+    {
+
+        var beatmap = await _resolver.FetchBeatmap(id);
+
+        if (beatmap is null)
+            return NotFound();
+
+        return Json(beatmap.ToOsu());
+    }
+    
     [HttpGet("scores")]
     [Authorization]
     public async Task<IActionResult> GetScoresAsync([FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name ="mode")] string mode)
@@ -55,26 +68,33 @@ public class BeatmapsController : Controller
         
         var scores = _storage.LeaderboardCache.ContainsKey(beatmap.Id) ? _storage.LeaderboardCache[beatmap.Id] : _context.Scores.AsEnumerable().Where(score => score.BeatmapId == beatmapId && score.Passed && score.RuleSetId == (int) rulesetId && score.Status == DbScoreStatus.BEST);
 
+        _storage.LeaderboardCache.TryAdd(beatmap.Id, scores.ToList());
+        DbScore[] dbScores;
 
-        var dbScores = scores as DbScore[] ?? scores.ToArray();
+        if (type == "country")
+        {
+            dbScores = scores.Where(c => c.GetUser(_context).Country == user.Country).ToArray();
+        }
+        else
+        {
+            dbScores = scores.ToArray();
+        }
         
-        _storage.LeaderboardCache.TryAdd(beatmap.Id, dbScores.Select(s => s).ToList());
+    
 
         var userScore = dbScores.FirstOrDefault(s => s.UserId == user.Id);
         return Json(new ScoresResponse
         {
-            Scores = _storage.LeaderboardCache[beatmap.Id].OrderByDescending(d => d.TotalScore).Select(c => c.ToOsuScore(_context, _resolver).GetAwaiter().GetResult()).Take(50).ToList(),
+            Scores = _storage.LeaderboardCache[beatmap.Id].OrderByDescending(d => d.TotalScore).Select(c => c.ToOsuScore(_resolver).GetAwaiter().GetResult()).Take(50).ToList(),
             UserScore = new UserScore
             {
                 Position = dbScores.Select((s, i) => new {Item = s, Position = i}).FirstOrDefault(s => s.Item.UserId == user.Id)?.Position??null,
-                Score = userScore is not null ? await userScore.ToOsuScore(_context) : null
+                Score = userScore is not null ? await userScore.ToOsuScore() : null
             }
         });
 
 
     }
-
-
     [HttpPost("solo/scores")]
     [Authorization]
     public async Task<IActionResult> CreateSubmissionToken([FromRoute(Name = "id")] int beatmapId)
@@ -100,6 +120,12 @@ public class BeatmapsController : Controller
 
         if (!_storage.ScoreTokens.ContainsKey(submitionToken))
             return Unauthorized();
+
+        var unrankedMods = new []{"AT"};
+        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
+        {
+            return BadRequest();
+        }
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
         var ruleset = (RulesetId)body.RulesetId switch
@@ -158,7 +184,7 @@ public class BeatmapsController : Controller
 
 
         dbUser.PlayCount++;
-        var stats = await ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
+        var stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
         
 
         stats.PerfomancePoints++;
@@ -204,10 +230,10 @@ public class BeatmapsController : Controller
             Beatmap = (await _resolver.FetchBeatmap(beatmapId)).ToOsu(),
             beatmapSet = (await _resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet.OnlineID))?.ToBeatmapSet(),
             Date = score.SubmittedAt,
-            Rank = score.Rank,
+            Rank = Enum.GetName(score.Rank),
             Statistics = JsonSerializer.Deserialize<object>(score.Statistics) ?? new {},
             HasReplay = false,
-            User = await user.ToOsuUser(ruleset.ShortName, _context),
+            User = user.ToOsuUser(ruleset.ShortName, _context),
             MaxCombo = score.MaxCombo,
             Mods = score.Mods.Select(s => new APIMod
             {
