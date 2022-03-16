@@ -36,7 +36,7 @@ public class MeController : Controller
 
         await user.FetchUserStats();
 
-        return Json(user.ToOsuUser("osu", _context));
+        return Json(user.ToOsuUser("osu"));
     }
 
     [Authorization]

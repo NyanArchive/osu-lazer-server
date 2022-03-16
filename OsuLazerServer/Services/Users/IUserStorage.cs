@@ -18,7 +18,7 @@ public interface IUserStorage
     
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; }
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; }
-    
+
     public Dictionary<int, Update> Updates { get; set; }
     
     public Dictionary<int, Channel> Channels { get; set; }

@@ -51,7 +51,7 @@ public class UsersController : Controller
         if (user is null)
             return NotFound();
 
-        var osuUser = user.ToOsuUser(mode, _context);
+        var osuUser = user.ToOsuUser(mode);
 
         if (_storage.Users.Values.Any(c => c.Id == user.Id))
             osuUser.IsOnline = true;

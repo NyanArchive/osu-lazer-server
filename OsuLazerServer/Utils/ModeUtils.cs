@@ -18,6 +18,7 @@ public enum RulesetId
 public class ModeUtils
 {
     public static Dictionary<string, IUserStats> StatsCache { get; set; } = new();
+    public static Dictionary<string, int> CachedRanks { get; set; } = new();
 
     public static IUserStats GetStatsByMode(string mode, User user)
     {
@@ -79,5 +80,22 @@ public class ModeUtils
             return "D";
 
         return "D";
+    }
+
+    public static int GetRank(string mode, int user)
+    {
+        if (CachedRanks.TryGetValue($"{mode}:{user}", out var rank))
+            return rank;
+
+        var context = new LazerContext();
+
+        var leaderboard = context.Users.AsEnumerable()
+            .OrderByDescending(d => (d.FetchStats(mode))?.PerfomancePoints ?? 0).Select((e, i) => new {index = i + 1, entry = e});
+
+        var cachedRank = leaderboard.FirstOrDefault(u => u.entry.Id == user)?.index??0;
+
+        CachedRanks.Add($"{mode}:{user}", cachedRank);
+
+        return cachedRank;
     }
 }

@@ -6,6 +6,7 @@ using Nager.Country;
 using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Users;
+using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 using Country = OsuLazerServer.Models.Country;
 
@@ -57,7 +58,7 @@ public class User
         StatsFruits = await ctx.FruitsStats.FirstAsync(s => s.Id == Id);
     }
 
-    public IUserStats FetchStats(string mode) => ModeUtils.FetchUserStats(new LazerContext(), mode, Id);
+    public IUserStats? FetchStats(string mode) => ModeUtils.FetchUserStats(new LazerContext(), mode, Id);
 
     public IUserStats GetStats(string mode)
     {
@@ -77,8 +78,9 @@ public class User
     }
 
 
-    public APIUser ToOsuUser(string mode, LazerContext context)
+    public APIUser ToOsuUser(string mode, IUserStorage? storage = null)
     {
+        var context = new LazerContext();
         var stats = ModeUtils.FetchUserStats(context, mode, Id);
         return new APIUser
         {
@@ -109,7 +111,7 @@ public class User
                 TotalHits = (int) (stats?.TotalHits ?? 0),
                 TotalScore = stats?.TotalScore??0,
                 CountryRank = 1,
-                GlobalRank = 1,
+                GlobalRank = ModeUtils.GetRank(mode, Id),
                 GradeCounts = new GradeCounts
                 {
                     A = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id),
@@ -130,7 +132,7 @@ public class User
             ScoresBestCount = context.Scores.Where(c => c.Passed && c.Status == DbScoreStatus.BEST && c.UserId == Id).Take(50).Count(),
             ScoresRecentCount = context.Scores.Where(c => c.Passed && c.UserId == Id).Take(50).Count(),
             IsActive = true,
-            ProfileOrder = new List<string>()
+            ProfileOrder = new List<string>
             {
                 "me",
                 "top_ranks",

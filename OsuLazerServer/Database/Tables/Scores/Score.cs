@@ -67,7 +67,7 @@ public class DbScore
             Rank = ModeUtils.CalculateRank(this),
             Statistics = HitResultStats.FromJson(Statistics).ToOsu(),
             User =
-                (await GetUserAsync(ctx))?.ToOsuUser(Enum.GetName(typeof(RulesetId), RuleSetId) ?? "osu", ctx) ??
+                (await GetUserAsync(ctx))?.ToOsuUser(Enum.GetName(typeof(RulesetId), RuleSetId) ?? "osu") ??
                 new APIUser {Id = 1, Username = "Bancho bot"},
             HasReplay = false,
             Mods = Mods.ToArray(),

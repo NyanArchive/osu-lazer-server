@@ -233,7 +233,7 @@ public class BeatmapsController : Controller
             Rank = Enum.GetName(score.Rank),
             Statistics = JsonSerializer.Deserialize<object>(score.Statistics) ?? new {},
             HasReplay = false,
-            User = user.ToOsuUser(ruleset.ShortName, _context),
+            User = user.ToOsuUser(ruleset.ShortName),
             MaxCombo = score.MaxCombo,
             Mods = score.Mods.Select(s => new APIMod
             {
