@@ -21,8 +21,14 @@ public class LazerContext : DbContext
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+#if !DEBUG
         optionsBuilder.UseNpgsql(
             $"Host={Environment.GetEnvironmentVariable("DB_HOST")};Port={Environment.GetEnvironmentVariable("DB_PORT")};Database={Environment.GetEnvironmentVariable("DB_NANE")};Username={Environment.GetEnvironmentVariable("DB_USER")};Password={Environment.GetEnvironmentVariable("DB_PASS")}");
+#else
+        optionsBuilder.UseNpgsql(
+            $"Host=localhost;Port=5432;Database=lazer;Username=postgres;Password=123321");
+#endif
+
     }
 
     public async Task<User> CreateBot()

@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk AS build-env
 WORKDIR /app
 
 COPY . ./
+COPY ./data ./
 
 RUN dotnet restore
 RUN dotnet publish OsuLazerServer/OsuLazerServer.csproj -c Release -o out

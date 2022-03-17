@@ -24,6 +24,7 @@ public interface IUserStorage
     public Dictionary<int, Channel> Channels { get; set; }
     
     public Dictionary<int, SpectatorState> UserStates { get; set; }
+    public static Sender SystemSender { get; set; }
 
     public Task NotifyUser(int userId, string message);
     public Task AddUpdate(int userId, Update update);

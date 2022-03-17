@@ -187,7 +187,6 @@ public class BeatmapsController : Controller
         var stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
         
 
-        stats.PerfomancePoints++;
         if (score.MaxCombo > stats.MaxCombo)
         {
             stats.MaxCombo = score.MaxCombo;
@@ -197,6 +196,8 @@ public class BeatmapsController : Controller
         if (beatmap.BeatmapInfo.Status == BeatmapOnlineStatus.Ranked)
         {
             stats.RankedScore += score.TotalScore;
+            
+            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints??0);
         }
 
 
@@ -223,7 +224,8 @@ public class BeatmapsController : Controller
         await _context.SaveChangesAsync();
 
         _storage.LeaderboardCache.Remove(beatmapId);
-
+        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
+        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
         return Json(new APIScore
         {
             Accuracy = score.Accuracy,
@@ -238,7 +240,7 @@ public class BeatmapsController : Controller
             Mods = score.Mods.Select(s => new APIMod
             {
                 Acronym = s,
-                Settings = new Dictionary<string, object>() {}
+                Settings = new Dictionary<string, object> {}
             }).ToArray(),
             PP = score.PerfomancePoints,
             TotalScore = score.TotalScore,

@@ -3,9 +3,11 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using NuGet.Packaging;
 using osu.Game.Utils;
 using OsuLazerServer.Database;
 using OsuLazerServer.Models;
+using OsuLazerServer.Models.Chat;
 using OsuLazerServer.Models.Response.OAuth;
 using OsuLazerServer.Services.Users;
 
@@ -81,8 +83,34 @@ public class TokensController : Controller
         _storage.Users.Add(token.AccessToken, user);
         await _cache.SetAsync($"token:{token.AccessToken}", Encoding.UTF8.GetBytes(user.Id.ToString()));
         await _cache.SetAsync($"token:{token.AccessToken}:expires_at", Encoding.UTF8.GetBytes(token.ExpiresIn.ToString()));
+
+
+
+        Task.Run(async () =>
+        {
+            Task.Delay(500);
+            var channel = new Channel
+            {
+                Description = "PM",
+                Icon = null,
+                Messages = new List<Message>(),
+                Moderated = false,
+                Name = UserStorage.SystemSender.Username,
+                Type = "PM",
+                Users = new List<int> {UserStorage.SystemSender.Id, user.Id},
+                ChannelId = 99912,
+                LastMessageId = null,
+                LastReadId = null
+
+            };
         
-        
+            channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/UW3mSdKW\nGit: http://s2.zloserver.com:32333/dhcpcd9/osu-lazer-server\n(DM me in Discord to activate account.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
+            await _storage.AddUpdate(user.Id, new Update
+            {
+                Channels = new List<Channel>() { channel },
+                Messages = channel.Messages
+            });
+        });
         return Json(token);
     }
     
