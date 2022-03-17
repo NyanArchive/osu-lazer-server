@@ -1,11 +1,9 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using osu.Game.Online;
 using OsuLazerServer.Database;
 using OsuLazerServer.Multiplayer;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Users;
+using OsuLazerServer.Services.Wiki;
 using OsuLazerServer.SpectatorClient;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +19,7 @@ builder.Services.AddStackExchangeRedisCache(args => args.Configuration = "localh
 builder.Services.AddScoped<ITokensService, TokenService>();
 builder.Services.AddSingleton<IUserStorage, UserStorage>();
 builder.Services.AddScoped<IBeatmapSetResolver, BeatmapSetResolverService>();
+builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
 
 var app = builder.Build();
 
