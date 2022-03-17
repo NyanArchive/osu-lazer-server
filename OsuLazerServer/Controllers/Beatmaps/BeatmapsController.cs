@@ -23,6 +23,7 @@ using OsuLazerServer.Utils;
 using UniqueIdGenerator.Net;
 using APIScore = OsuLazerServer.Models.Response.Scores.APIScore;
 using HitResult = osu.Game.Rulesets.Scoring.HitResult;
+using LazerStatus = OsuLazerServer.Models.Response.Beatmaps;
 
 namespace OsuLazerServer.Controllers.Beatmaps;
 
@@ -137,6 +138,7 @@ public class BeatmapsController : Controller
             _ => new OsuRuleset().RulesetInfo,
         };
 
+        var mirrorBeatmap = await _resolver.FetchBeatmap(beatmapId);
         var beatmapStream = await BeatmapUtils.GetBeatmapStream(beatmapId);
         var beatmap = new ProcessorWorkingBeatmap(beatmapStream, beatmapId);
         
@@ -193,7 +195,7 @@ public class BeatmapsController : Controller
         }
 
         stats.TotalScore += score.TotalScore;
-        if (beatmap.BeatmapInfo.Status == BeatmapOnlineStatus.Ranked)
+        if (mirrorBeatmap.ToOsu().Status == LazerStatus.BeatmapOnlineStatus.Ranked)
         {
             stats.RankedScore += score.TotalScore;
             
