@@ -107,7 +107,7 @@ public class UsersController : Controller
             Password = BCrypt.Net.BCrypt.HashPassword(body.Password),
             Username = body.Username,
             NicknameHistory = new[] { "Stop putin" },
-            Country = "UA",
+            Country = await IPUtils.GetCountry(Request.Host.Host),
             PlayCount = 0,
             ReplaysWatches = 0,
             StatsFruits = new UsersStatsFruits(),
