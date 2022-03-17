@@ -98,8 +98,8 @@ public class User
             Cover = new Cover
             {
                 Id = null,
-                Url = "https://media.discordapp.net/attachments/805142641427218452/933105146404143144/unknown.png",
-                CustomUrl = "https://media.discordapp.net/attachments/805142641427218452/933105146404143144/unknown.png"
+                Url = "https://media.discordapp.net/attachments/951904126164410388/954157898102087710/FNtSlHHakAEETLx.jpg",
+                CustomUrl = "https://media.discordapp.net/attachments/951904126164410388/954157898102087710/FNtSlHHakAEETLx.jpg"
             },
             Statistics = new Statistics
             {
