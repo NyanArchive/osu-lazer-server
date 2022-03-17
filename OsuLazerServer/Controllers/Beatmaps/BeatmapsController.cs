@@ -227,7 +227,7 @@ public class BeatmapsController : Controller
         return Json(new APIScore
         {
             Accuracy = score.Accuracy,
-            Beatmap = (await _resolver.FetchBeatmap(beatmapId)).ToOsu(),
+            Beatmap = (await _resolver.FetchBeatmap(beatmapId))?.ToOsu()??null,
             beatmapSet = (await _resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet.OnlineID))?.ToBeatmapSet(),
             Date = score.SubmittedAt,
             Rank = Enum.GetName(score.Rank),

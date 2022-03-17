@@ -49,4 +49,9 @@ public class WikiResolverService : IWikiResolver
 
         return wikiInfo;
     }
+
+    public List<string> ListOfNews()
+    {
+        return new List<string>();
+    }
 }

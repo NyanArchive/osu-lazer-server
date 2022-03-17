@@ -15,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR(c => c.EnableDetailedErrors = true).AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS);
 
 builder.Services.AddMemoryCache();
-builder.Services.AddStackExchangeRedisCache(args => args.Configuration = "localhost:6379");
+builder.Services.AddStackExchangeRedisCache(args => args.Configuration = Environment.GetEnvironmentVariable("REDIS_URL"));
 builder.Services.AddScoped<ITokensService, TokenService>();
 builder.Services.AddSingleton<IUserStorage, UserStorage>();
 builder.Services.AddScoped<IBeatmapSetResolver, BeatmapSetResolverService>();

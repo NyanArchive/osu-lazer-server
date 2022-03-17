@@ -1,0 +1,42 @@
+services:
+  app:
+    container_name: lazer-server
+    build: 
+      dockerfile: OsuLazerServer/Dockerfile
+      context: .
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_NAME=lazer
+      - DB_PASS=123321
+      - REDIS_URL=cache:6379
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - db
+    networks:
+      - lazer
+  db:
+    container_name: lazer-server-db
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES=USER=postgres
+      - POSTGRES_PASSWORD=123321
+      - POSTGRES_DB=lazer
+    networks:
+      - lazer
+  cache:
+    container_name: lazer-server-cache
+    restart: always
+    image: redis:7.0-rc2
+    networks:
+      - lazer
+    
+  
+
+networks:
+  lazer:
+    driver: bridge

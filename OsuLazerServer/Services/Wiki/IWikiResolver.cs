@@ -12,5 +12,7 @@ public interface IWikiResolver
 
     public WikiInfo GetWikiPage(string wiki);
 
+    public List<string> ListOfNews();
+
 
 }
