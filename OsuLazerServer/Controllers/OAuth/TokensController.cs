@@ -104,7 +104,7 @@ public class TokensController : Controller
 
             };
         
-            channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/UW3mSdKW\nGit: http://s2.zloserver.com:32333/dhcpcd9/osu-lazer-server\n(DM me in Discord to activate account.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
+            channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/p9BhPXHZWB\nGit: http://s2.zloserver.com:32333/dhcpcd9/osu-lazer-server\n(DM me in Discord to activate account.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
             await _storage.AddUpdate(user.Id, new Update
             {
                 Channels = new List<Channel>() { channel },
