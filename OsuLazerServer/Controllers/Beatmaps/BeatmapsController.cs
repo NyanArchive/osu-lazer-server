@@ -44,7 +44,7 @@ public class BeatmapsController : Controller
 
     [HttpGet("/api/v2/beatmaps/lookup")]
     [Authorization]
-    public async Task<IActionResult> LookUpBeatmapAsync([FromQuery(Name = "beatmap_id")] int id, [FromQuery(Name = "checksum")] string? checksum)
+    public async Task<IActionResult> LookUpBeatmapSetAsync([FromQuery(Name = "id")] int id, [FromQuery(Name = "checksum")] string? checksum)
     {
         var beatmap = await _resolver.FetchBeatmap(id);
 
@@ -52,6 +52,22 @@ public class BeatmapsController : Controller
             return NotFound();
 
         return Json(beatmap.ToOsu());
+    }
+    
+    [HttpGet("/api/v2/beatmapsets/lookup")]
+    [Authorization]
+    public async Task<IActionResult> LookUpBeatmapAsync([FromQuery(Name = "beatmap_id")] int id, [FromQuery(Name = "checksum")] string? checksum)
+    {
+        var beatmap = await _resolver.FetchBeatmap(id);
+
+        if (beatmap is null)
+            return NotFound();
+
+        var set = await _resolver.FetchSetAsync(beatmap.BeatmapsetId);
+
+        if (set is null)
+            return NotFound();
+        return Json(set.ToBeatmapSet());
     }
     
     [HttpGet("scores")]
