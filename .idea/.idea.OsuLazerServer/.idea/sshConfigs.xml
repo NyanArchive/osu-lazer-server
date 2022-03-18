@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig host="s2.zloserver.com" id="69e1194b-5c57-4c99-aa27-bc5b9f4739ff" keyPath="C:\Users\dhcpc\.ssh\id_rsa" port="32000" nameFormat="DESCRIPTIVE" username="root" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>

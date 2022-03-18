@@ -137,11 +137,6 @@ public class BeatmapsController : Controller
         if (!_storage.ScoreTokens.ContainsKey(submitionToken))
             return Unauthorized();
 
-        var unrankedMods = new []{"AT"};
-        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
-        {
-            return BadRequest();
-        }
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
         var ruleset = (RulesetId)body.RulesetId switch
@@ -213,9 +208,13 @@ public class BeatmapsController : Controller
         if (mirrorBeatmap.ToOsu().Status == LazerStatus.BeatmapOnlineStatus.Ranked)
         {
             stats.RankedScore += score.TotalScore;
-            
-            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints??0);
-        }   
+
+            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints ?? 0);
+        }
+        else
+        {
+            stats.PerfomancePoints = 0;
+        }
 
 
         score.Status = DbScoreStatus.OUTDATED;
@@ -235,11 +234,20 @@ public class BeatmapsController : Controller
             }
         }
         
+        
+        var unrankedMods = new []{"AT", "AA", "CN", "DA"};
+        
+        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
+        {
+            score.Status = DbScoreStatus.OUTDATED;
+        }
+        
         await _context.SaveChangesAsync();
 
         _storage.LeaderboardCache.Remove(beatmapId);
         _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
         _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
+        ModeUtils.StatsCache.Remove($"{ruleset.ShortName}:{user.Id}");
         return Json(new APIScore
         {
             Accuracy = score.Accuracy,

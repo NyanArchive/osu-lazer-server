@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="0543647d-54d7-4822-a48f-883ba416cf62" name="Astellia">
+        <fileTransfer rootFolder="/root/" accessType="SFTP" host="s2.zloserver.com" port="32000" sshConfigId="69e1194b-5c57-4c99-aa27-bc5b9f4739ff" sshConfig="root@s2.zloserver.com:32000 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
