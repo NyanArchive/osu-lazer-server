@@ -170,6 +170,7 @@ public class UsersController : Controller
             LastVisit = DateTime.Now,
             PmFriendsOnly = false,
             ProfileColour = null,
+            JoinDate = DateTime.Now,
             StatisticsRuleset = new Dictionary<string, Statistics>
             {
                 {"fruits", ModeUtils.FetchUserStats(new LazerContext(), "fruits", user.Id).ToOsu("fruits")},
