@@ -23,7 +23,6 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<int, Channel> Channels { get; set; } = new();
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();
     public IServiceScope Scope { get; set; }
-
     public IServiceProvider ServiceProvider { get; }
     public UserStorage(IServiceProvider scope)
     {
