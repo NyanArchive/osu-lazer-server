@@ -61,12 +61,9 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
     {
         try
         {
-            SpectatorState? state;
+            SpectatorState state = _storage.UserStates[userId];
 
-            if (_storage.UserStates.TryGetValue(userId, out state))
-                state = null;
-
-            if (state != null) await Clients.Caller.UserBeganPlaying(userId, state);
+            await Clients.Caller.UserBeganPlaying(userId, state);
         }
         catch (KeyNotFoundException)
         {

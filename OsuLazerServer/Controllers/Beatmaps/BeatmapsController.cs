@@ -44,9 +44,8 @@ public class BeatmapsController : Controller
 
     [HttpGet("/api/v2/beatmaps/lookup")]
     [Authorization]
-    public async Task<IActionResult> LookUpBeatmapAsync([FromQuery(Name = "id")] int id, [FromQuery(Name = "checksum")] string checksum)
+    public async Task<IActionResult> LookUpBeatmapAsync([FromQuery(Name = "beatmap_id")] int id, [FromQuery(Name = "checksum")] string? checksum)
     {
-
         var beatmap = await _resolver.FetchBeatmap(id);
 
         if (beatmap is null)
