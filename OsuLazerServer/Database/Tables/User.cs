@@ -86,6 +86,11 @@ public class User
         {
             Username = Username,
             Id = Id,
+            RankHistory = new RankHistory
+            {
+                Data = new List<int>(),
+                Mode = "osu"
+            },
             IsSupporter = true,
             JoinDate = JoinedAt,
             Website = "https://google.com",

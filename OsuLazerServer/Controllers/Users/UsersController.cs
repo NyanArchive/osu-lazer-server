@@ -141,11 +141,13 @@ public class UsersController : Controller
         return Json(new {users = ids.Select(id => toSpectatorUser(id))});
     }
 
-    private SpectatorUser toSpectatorUser(int id)
+    private APIUser toSpectatorUser(int id)
     {
         var user = _context.Users.FirstOrDefault(d => d.Id == id);
+        
 
-        return new SpectatorUser
+        return user.ToOsuUser("osu", _storage);
+        /*return new SpectatorUser
         {
             Country = new Country
             {
@@ -183,7 +185,6 @@ public class UsersController : Controller
                 {"taiko", ModeUtils.FetchUserStats(new LazerContext(), "taiko", user.Id).ToOsu("taiko")},
             },
             Username = user.Username
-            
-        };
+        };*/
     }
 }
