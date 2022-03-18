@@ -169,7 +169,7 @@ public class UsersController : Controller
             IsSupporter = true,
             RankHistory = new RankHistory {
                 Data = new List<int>(),
-                Mode = ""
+                Mode = "osu"
             },
             LastVisit = DateTime.Now,
             PmFriendsOnly = false,
