@@ -86,6 +86,7 @@ public class User
         {
             Username = Username,
             Id = Id,
+            IsOnline = storage?.Users.Values.Any(u => u.Id == Id)??false,
             RankHistory = new RankHistory
             {
                 Data = new List<int>(),
