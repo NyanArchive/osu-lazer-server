@@ -200,7 +200,7 @@ public class BeatmapsController : Controller
             stats.RankedScore += score.TotalScore;
             
             stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints??0);
-        }
+        }   
 
 
         score.Status = DbScoreStatus.OUTDATED;
@@ -218,10 +218,7 @@ public class BeatmapsController : Controller
                 stats.Accuracy = (float)(_context.Scores.Where(s => s.Passed && s.UserId == user.Id).Select(a => a.Accuracy * 100)
                     .ToList().Average() / 100F);
             }
-
         }
-
-        
         
         await _context.SaveChangesAsync();
 

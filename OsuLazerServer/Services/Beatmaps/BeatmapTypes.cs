@@ -285,13 +285,13 @@ namespace OsuLazerServer.Services.Beatmaps;
             },
             Beatmaps = Beatmaps?.Select(beatmap => new APIBeatmap
             {
-                Checksum = beatmap.Checksum,
-                Length = beatmap.HitLength,
-                Status = BeatmapUtils.Status(beatmap.Status.ToLower()),
-                DifficultyName = beatmap.Version,
-                StarRating = beatmap.DifficultyRating,
-                OnlineID = beatmap.Id,
-                RulesetID = beatmap.ModeInt,
+                Checksum = beatmap?.Checksum??"",
+                Length = beatmap?.HitLength??0,
+                Status = BeatmapUtils.Status(beatmap?.Status?.ToLower()??"graveyard"),
+                DifficultyName = beatmap?.Version??"",
+                StarRating = beatmap?.DifficultyRating??0,
+                OnlineID = beatmap?.Id??0,
+                RulesetID = beatmap?.ModeInt??0,
                 OnlineBeatmapSetID = Id
             }).ToArray()??new APIBeatmap[] {},
             Covers = new BeatmapSetOnlineCovers

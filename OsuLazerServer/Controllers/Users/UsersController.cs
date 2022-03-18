@@ -1,15 +1,19 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using Nager.Country;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables;
 using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Users;
+using OsuLazerServer.Models.Spectator;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
+using Realms;
+using Country = OsuLazerServer.Models.Country;
 
 namespace OsuLazerServer.Controllers;
 
@@ -123,5 +127,58 @@ public class UsersController : Controller
         return Ok();
 
 
+    }
+
+
+    [HttpGet("/api/v2/users/")]
+    public async Task<IActionResult> GetUrl()
+    {
+        var uri = Request.QueryString.Value;
+        
+        var ids = uri.Split("?").Last().Split("&").Select(s => s.Replace("ids[]=", "")).Select(val => Convert.ToInt32(val));
+        
+        
+        return Json(new {users = ids.Select(id => toSpectatorUser(id))});
+    }
+
+    private SpectatorUser toSpectatorUser(int id)
+    {
+        var user = _context.Users.FirstOrDefault(d => d.Id == id);
+
+        return new SpectatorUser
+        {
+            Country = new Country
+            {
+                Code = user.Country,
+                Name = new CountryProvider().GetCountry(user.Country).CommonName
+            },
+            CountryCode = user.Country,
+            Cover = new Cover
+            {
+                Id = null,
+                CustomUrl = "https://media.discordapp.net/attachments/805142641427218452/954414155539046430/FOG8Lr3VQAAgi7t.jpg",
+                Url = "https://media.discordapp.net/attachments/805142641427218452/954414155539046430/FOG8Lr3VQAAgi7t.jpg"
+            },
+            DefaultGroup = "default",
+            Groups = new List<object>(),
+            Id = user.Id,
+            IsActive = true,
+            IsBot = false,
+            IsDeleted = false,
+            IsOnline = _storage.Users.Values.Any(d => d.Id == id),
+            IsSupporter = true,
+            LastVisit = DateTime.Now,
+            PmFriendsOnly = false,
+            ProfileColour = null,
+            StatisticsRuleset = new Dictionary<string, Statistics>
+            {
+                {"fruits", ModeUtils.FetchUserStats(new LazerContext(), "fruits", user.Id).ToOsu("fruits")},
+                {"mania", ModeUtils.FetchUserStats(new LazerContext(), "mania", user.Id).ToOsu("mania")},
+                {"osu", ModeUtils.FetchUserStats(new LazerContext(), "osu", user.Id).ToOsu("osu")},
+                {"taiko", ModeUtils.FetchUserStats(new LazerContext(), "taiko", user.Id).ToOsu("taiko")},
+            },
+            Username = user.Username
+            
+        };
     }
 }

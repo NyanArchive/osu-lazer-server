@@ -86,5 +86,6 @@ public class DbScore
 public enum DbScoreStatus
 {
     BEST,
-    OUTDATED
+    OUTDATED,
+    FIRST
 }

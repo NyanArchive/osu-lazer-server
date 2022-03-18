@@ -18,6 +18,8 @@ public class BeatmapSetController : Controller
         _resolver = resolver;
         _context = context;
     }
+    
+    [HttpGet]
     public async Task<IActionResult> Index([FromRoute(Name = "setId")] int setId)
     {
         var beatmapset = await _resolver.FetchSetAsync(setId);

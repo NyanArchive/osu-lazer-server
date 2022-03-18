@@ -32,7 +32,7 @@ public class AuthorizationAttribute : ActionFilterAttribute
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds())
                 {
                     context.HttpContext.Response.StatusCode = 401;
-                    await context.HttpContext.Response.WriteAsJsonAsync(new {error = "User not logged in."});
+                    await context.HttpContext.Response.WriteAsJsonAsync(new {error = "Unauthorized"});
                     await context.HttpContext.Response.CompleteAsync(); 
                 }
 

@@ -41,9 +41,9 @@ public class WikiResolverService : IWikiResolver
 
     public WikiInfo GetWikiPage(string wiki)
     {
-        var wikiInfo = JsonSerializer.Deserialize<WikiInfo>(File.ReadAllText(Path.Combine("Data", "wiki", wiki, "info.json")));
+        var wikiInfo = JsonSerializer.Deserialize<WikiInfo>(File.ReadAllText(Path.Combine("Data", "wiki", Path.GetFileName(wiki), "info.json")));
 
-        var markdown = File.ReadAllText(Path.Combine("data", "wiki", wiki, "page.md"));
+        var markdown = File.ReadAllText(Path.Combine("data", "wiki", Path.GetFileName(wiki), "page.md"));
 
         wikiInfo.Content = markdown;
 

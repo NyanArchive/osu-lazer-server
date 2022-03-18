@@ -32,6 +32,6 @@ public interface IUserStorage
     public Task<Update> GetUpdatesForUser(int userId);
 
     public Task<Channel> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
-    
 
+    public Task ForceJoinChannel(int id, int channelId);
 }

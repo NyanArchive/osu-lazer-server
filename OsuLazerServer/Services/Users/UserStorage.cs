@@ -125,6 +125,22 @@ public class UserStorage : IUserStorage, IServiceScope
         return newChannel;
     }
 
+    public Task ForceJOinChannel(int id, int channelId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task ForceJoinChannel(int userId, int channelId)
+    {
+        var channel = await GetChannelAsync(channelId, new LazerContext());
+
+        await AddUpdate(userId, new Update
+        {
+            Channels = new List<Channel> { channel },
+            Messages = new List<Message>()
+        });
+    }
+
     public async Task NotifyUser(int userId, string message)
     {
         await AddUpdate(userId, new Update
