@@ -167,6 +167,10 @@ public class UsersController : Controller
             IsDeleted = false,
             IsOnline = _storage.Users.Values.Any(d => d.Id == id),
             IsSupporter = true,
+            RankHistory = new RankHistory {
+                Data = new List<int>(),
+                Mode = ""
+            },
             LastVisit = DateTime.Now,
             PmFriendsOnly = false,
             ProfileColour = null,
