@@ -32,7 +32,7 @@ public class MeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
+        var user = _storage.Users[Request.Headers["Authorization"][1]];
 
         await user.FetchUserStats();
 

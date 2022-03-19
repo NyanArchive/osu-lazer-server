@@ -27,7 +27,6 @@ builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
 
 var app = builder.Build();
 
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

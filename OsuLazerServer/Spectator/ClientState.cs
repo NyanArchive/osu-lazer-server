@@ -16,6 +16,6 @@ public class ClientState
     public IEnumerable<APIMod> Mods { get; set; } = Enumerable.Empty<APIMod>();
     [Key(3)]
     public SpectatedUserState State { get; set; }
-    
-    
+
+
 }
