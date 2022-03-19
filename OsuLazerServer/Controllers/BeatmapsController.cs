@@ -11,8 +11,6 @@ namespace OsuLazerServer.Controllers;
 [Route("/api/v2/beatmapsets")]
 public class BeatmapsController : Controller
 {
-
-
     private IBeatmapSetResolver _resolver;
 
     public BeatmapsController(IBeatmapSetResolver resolver)

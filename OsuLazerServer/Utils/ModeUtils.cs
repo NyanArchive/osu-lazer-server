@@ -33,8 +33,9 @@ public class ModeUtils
 
     public static IUserStats FetchUserStats(LazerContext context, string mode, int id)
     {
-        if (StatsCache.ContainsKey($"{id}:{mode}"))
-            return StatsCache[$"{id}:{mode}"];
+        if (StatsCache.TryGetValue($"{id}:{mode}", out var value))
+            return value;
+
         if (mode == "osu")
         {
             var userStats = context.OsuStats.FirstOrDefault(s => s.Id == id);
@@ -94,7 +95,7 @@ public class ModeUtils
 
         var cachedRank = leaderboard.FirstOrDefault(u => u.entry.Id == user)?.index??0;
 
-        CachedRanks.Add($"{mode}:{user}", cachedRank);
+        CachedRanks.TryAdd($"{mode}:{user}", cachedRank);
 
         return cachedRank;
     }

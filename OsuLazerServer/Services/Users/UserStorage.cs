@@ -20,7 +20,7 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<long, User> ScoreTokens { get; set; } = new();
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; } = new();
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; } = new();
-    public Dictionary<int, Room> Rooms { get; set; }
+    public Dictionary<int, Room> Rooms { get; set; } = new();
     public Dictionary<int, Update> Updates { get; set; } = new();
     public Dictionary<int, Channel> Channels { get; set; } = new();
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();

@@ -26,7 +26,6 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
 
     public async Task<BeatmapSet?> FetchSetAsync(int setId)
     {
-
         if (BeatmapsCache.TryGetValue(setId, out var set))
         {
             if (set is BeatmapSet value)
@@ -34,7 +33,6 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
         } 
         
         var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search/beatmapset/{setId}");
-
 
         var body = JsonSerializer.Deserialize<BeatmapSet>(await request.Content.ReadAsStringAsync());
         if (body is not null)
@@ -51,8 +49,8 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
             if (set is Beatmap value)
                 return value;
         }
-        var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search/beatmap/{beatmapId}");
 
+        var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search/beatmap/{beatmapId}");
 
         var body = JsonSerializer.Deserialize<Beatmap>(await request.Content.ReadAsStringAsync());
         
