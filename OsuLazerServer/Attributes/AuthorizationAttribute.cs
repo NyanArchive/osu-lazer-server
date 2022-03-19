@@ -26,13 +26,13 @@ public class AuthorizationAttribute : ActionFilterAttribute
             //We trying to get it from redis.
             if (cachedUserId is not null)
             {
-                var expiresAtRaw =  Convert.ToInt64(Encoding.UTF8.GetString(await cache.GetAsync($"token:{token}:expires_at")));
+                var expiresAtRaw =  Convert.ToInt64(Encoding.UTF8.GetString(await cache.GetAsync($"token:{token}:expires_at") ?? Array.Empty<byte>()));
 
                 if (expiresAtRaw <
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds())
                 {
                     context.HttpContext.Response.StatusCode = 401;
-                    await context.HttpContext.Response.WriteAsJsonAsync(new {error = "Unauthorized"});
+                    await context.HttpContext.Response.WriteAsJsonAsync(new {authentication = "basic"});
                     await context.HttpContext.Response.CompleteAsync(); 
                 }
 
@@ -44,7 +44,7 @@ public class AuthorizationAttribute : ActionFilterAttribute
             }
             
             context.HttpContext.Response.StatusCode = 401;
-            await context.HttpContext.Response.WriteAsJsonAsync(new {error = "Unauthorized"});
+            await context.HttpContext.Response.WriteAsJsonAsync(new {authentication = "basic"});
             await context.HttpContext.Response.CompleteAsync();
             return;
         }
