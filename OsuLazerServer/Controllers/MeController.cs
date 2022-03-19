@@ -32,7 +32,7 @@ public class MeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var user = _storage.Users[Request.Headers["Authorization"][1]];
+        var user = _storage.Users[Request.Headers["Authorization"].ToString().Split(' ')[1]];
 
         await user.FetchUserStats();
 
