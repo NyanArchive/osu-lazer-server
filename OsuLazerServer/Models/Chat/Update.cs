@@ -9,7 +9,7 @@ public class Update
     public DateTimeOffset UpdateRecievedAt;
     
     [JsonPropertyName("presence")]
-    public List<Channel> Channels { get; set; }
+    public List<Channel>? Channels { get; set; }
 
     [JsonPropertyName("messages")] public List<Message> Messages { get; set; }
 }

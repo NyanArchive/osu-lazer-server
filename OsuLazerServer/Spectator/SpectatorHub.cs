@@ -12,8 +12,7 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
     private IUserStorage _storage;
     private ILogger<SpectatorHub> _logger;
     private User _user =>
-        _storage.Users[
-            Context.GetHttpContext().Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
+        _storage.GetUser(Context.GetHttpContext().Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
 
     public SpectatorHub(IUserStorage storage, ILogger<SpectatorHub> logger)
     {

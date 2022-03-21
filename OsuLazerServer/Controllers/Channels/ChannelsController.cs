@@ -27,7 +27,7 @@ public class ChannelsController : Controller
     }
 
     [HttpGet("channels")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> GetChannels()
     {
         return Json(_context.Channels.Where(u => true).Select(c => new Channel
@@ -45,7 +45,7 @@ public class ChannelsController : Controller
     }
 
     [HttpGet("updates")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> GetUpdates([FromQuery(Name = "since")] ulong since)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
@@ -63,7 +63,7 @@ public class ChannelsController : Controller
         return Json(updates);
     }
     [HttpPut("channels/{channelid}/users/{userId}")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> PutUser([FromRoute(Name = "channelid")] int channelId, [FromRoute(Name = "userId")] int userId)
     {
          
@@ -85,7 +85,7 @@ public class ChannelsController : Controller
     }
     
     [HttpDelete("channels/{channelid}/users/{userId}")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> LeaveUserFromChannel([FromRoute(Name = "channelid")] int channelId, [FromRoute(Name = "userId")] int userId)
     {
          
@@ -102,7 +102,7 @@ public class ChannelsController : Controller
     }
 
     [HttpGet("channels/{channelId:int}/messages")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> GetMessages([FromRoute(Name = "channelId")] int channelId)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
@@ -116,7 +116,7 @@ public class ChannelsController : Controller
     }
 
     [HttpPost("channels/{channelId:int}/messages")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> PostMessageToChannel([FromRoute(Name = "channelid")] int channelId, [FromForm] MessagePostBody body)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
@@ -188,7 +188,7 @@ public class ChannelsController : Controller
     }
 
     [HttpPost("channels")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> CreateChannelAsync([FromForm] CreatePMForm body)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
@@ -221,7 +221,7 @@ public class ChannelsController : Controller
     }
 
     [HttpPost("new")]
-    [Authorization]
+    [RequiredLazerClient]
     public async Task<IActionResult> NewMessageAsync([FromForm] MessagePostBody body)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];

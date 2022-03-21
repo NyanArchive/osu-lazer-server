@@ -10,7 +10,7 @@ using OsuLazerServer.Services.Users;
 namespace OsuLazerServer.Attributes;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public class AuthorizationAttribute : ActionFilterAttribute
+public class RequiredLazerClient : ActionFilterAttribute
 {
     public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
@@ -38,7 +38,7 @@ public class AuthorizationAttribute : ActionFilterAttribute
 
                 var user = await ctx.Users.FirstAsync(u => u.Id == Convert.ToInt32(Encoding.UTF8.GetString(cachedUserId)));
 
-                storage.Users.Add(token, user);
+                storage.Users.TryAdd(token, user);
                 await next();
                 return;
             }

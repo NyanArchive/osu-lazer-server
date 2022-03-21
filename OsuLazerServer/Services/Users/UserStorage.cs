@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Spectator;
 using osu.Game.Scoring;
 using OsuLazerServer.Database;
@@ -24,6 +27,8 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<int, Update> Updates { get; set; } = new();
     public Dictionary<int, Channel> Channels { get; set; } = new();
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();
+    public Dictionary<int, MultiplayerRoom> HubRooms { get; set; } = new();
+    public Dictionary<int, PlaylistItem> PlaylistItems { get; set; } = new();
     public IServiceScope Scope { get; set; }
     public IServiceProvider ServiceProvider { get; }
     public UserStorage(IServiceProvider scope)
@@ -57,13 +62,15 @@ public class UserStorage : IUserStorage, IServiceScope
                 Messages = new List<Message>(),
                 UpdateRecievedAt = DateTimeOffset.Now
             };
-            newUpdate.Channels.AddRange(update.Channels);
+            if (updates is null)
+                return;
+            updates.Channels?.AddRange(update.Channels ?? new List<Channel>());
             newUpdate.Messages.AddRange(update.Messages);
             Updates.Add(userId, newUpdate);
             return;
         }
         
-        updates.Channels.AddRange(update.Channels);
+        updates.Channels?.AddRange(update.Channels ?? new List<Channel>());
         updates.Messages.AddRange(update.Messages);
         updates.UpdateRecievedAt = DateTimeOffset.Now;
     }
@@ -125,12 +132,6 @@ public class UserStorage : IUserStorage, IServiceScope
         
         return newChannel;
     }
-
-    public Task ForceJOinChannel(int id, int channelId)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task ForceJoinChannel(int userId, int channelId)
     {
         var channel = await GetChannelAsync(channelId, new LazerContext());
@@ -140,6 +141,33 @@ public class UserStorage : IUserStorage, IServiceScope
             Channels = new List<Channel> { channel },
             Messages = new List<Message>()
         });
+    }
+
+    public User? GetUser(string token)
+    {
+        if (!Users.TryGetValue(token, out var u))
+        {
+            var cache = ServiceProvider.GetRequiredService<IDistributedCache>();
+            var cachedUserId = cache.Get($"token:{token}");
+            //We trying to get it from redis.
+            if (cachedUserId is not null)
+            {
+                var expiresAtRaw =  Convert.ToInt64(Encoding.UTF8.GetString(cache.Get($"token:{token}:expires_at") ?? Array.Empty<byte>()));
+
+                if (expiresAtRaw <
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                {
+                    return null;
+                }
+
+                var user = new LazerContext().Users.First(u => u.Id == Convert.ToInt32(Encoding.UTF8.GetString(cachedUserId)));
+
+                Users.TryAdd(token, user);
+                return null;
+            }
+        }
+
+        return u;
     }
 
     public async Task NotifyUser(int userId, string message)

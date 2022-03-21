@@ -99,6 +99,9 @@ public struct BeatmapSetOnlineLanguage
 
         [JsonPropertyName(@"beatmapset_id")]
         public int OnlineBeatmapSetID { get; set; }
+        
+        [JsonPropertyName("beatmapset")]
+        public APIBeatmapSet? BeatmapSet { get; set; }
 
         [JsonPropertyName(@"status")]
         public BeatmapOnlineStatus Status { get; set; }

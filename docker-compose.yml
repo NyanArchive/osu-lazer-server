@@ -26,6 +26,8 @@ services:
       - POSTGRES=USER=postgres
       - POSTGRES_PASSWORD=123321
       - POSTGRES_DB=lazer
+    ports:
+      - 5432:5432
     networks:
       - lazer
   cache:

@@ -118,16 +118,17 @@ namespace OsuLazerServer.Services.Beatmaps;
         [JsonPropertyName("max_combo")]
         public int MaxCombo { get; set; }
 
-        public APIBeatmap ToOsu() => new APIBeatmap
+        public async Task<APIBeatmap> ToOsu(IBeatmapSetResolver? resolver = null) => new APIBeatmap
         {
             Checksum = Checksum,
             Length = HitLength,
-            Status = BeatmapUtils.Status(Status.ToLower()),
+            Status = BeatmapUtils.Status(Status?.ToLower()??"graveyard"),
             DifficultyName = Version,
             StarRating = DifficultyRating,
             OnlineID = Id,
             RulesetID = ModeInt,
-            OnlineBeatmapSetID = Id
+            OnlineBeatmapSetID = BeatmapsetId,
+            BeatmapSet = resolver?.FetchSetAsync(BeatmapsetId).GetAwaiter().GetResult()?.ToBeatmapSet()
         };
     }
 

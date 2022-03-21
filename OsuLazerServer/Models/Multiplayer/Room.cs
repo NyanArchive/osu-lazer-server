@@ -6,10 +6,14 @@ using MatchType = osu.Game.Online.Rooms.MatchType;
 
 namespace OsuLazerServer.Models.Multiplayer;
 
-public class Room
+public class Room : ICloneable
 {
+    [JsonPropertyName("active")]
+    public bool Active { get; set; }
+    [JsonPropertyName("user_id")]
+    public int UserId { get; set; }
     [JsonPropertyName("id")]
-    public long? RoomID { get; set; }
+    public int? Id { get; set; }
 
     [JsonPropertyName("name")]
     public string Name { get; set; }
@@ -20,50 +24,20 @@ public class Room
     [JsonPropertyName("playlist")]
     public List<PlaylistItem> Playlist { get; set; }
 
-    [JsonPropertyName("current_playlist_item")]
-    public PlaylistItem CurrentPlaylistItem { get; set; }
-
     [JsonPropertyName("channel_id")]
     public int ChannelId { get; set; }
 
-    public RoomCategory Category { get; set; }
+    [JsonPropertyName("current_playlist_item")]
+    public PlaylistItem CurrentPlaylistItem { get; set; }
 
-    [JsonPropertyName("category")]
-    [JsonConverter(typeof(SnakeCaseStringEnumConverter))]
-    private RoomCategory category
-    {
-        get => Category;
-        set => Category = value;
-    }
+    [JsonPropertyName("playlist_item_stats")]
+    public RoomPlaylistItemStats? PlaylistItemStats { get; set; }
 
-    public int? MaxAttempts;
+    [JsonPropertyName("difficulty_range")]
+    public RoomDifficultyRange? DifficultyRange { get; set; }
 
-    [JsonIgnore]
-    public MatchType Type;
-
-    // Todo: osu-framework bug (https://github.com/ppy/osu-framework/issues/4106)
-    [JsonConverter(typeof(SnakeCaseStringEnumConverter))]
-    [JsonPropertyName("type")]
-    private MatchType type
-    {
-        get => Type;
-        set => Type = value;
-    }
-
-    [JsonIgnore]
-    public QueueMode QueueMode { get; set; }
-
-    [JsonConverter(typeof(SnakeCaseStringEnumConverter))]
-    [JsonPropertyName("queue_mode")]
-    private QueueMode queueMode
-    {
-        get => QueueMode;
-        set => QueueMode = value;
-    }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("current_user_score")]
-    public PlaylistAggregateScore UserScore { get; set; }
+    public PlaylistAggregateScore? CurrentUserScore { get; set; }
 
     [JsonPropertyName("has_password")]
     public bool HasPassword { get; set; }
@@ -72,41 +46,52 @@ public class Room
     public List<APIUser> RecentParticipants { get; set; }
 
     [JsonPropertyName("participant_count")]
-    public int ParticipantCount { get; set; }
-
-    #region Properties only used for room creation request
+    public int? ParticipantCount { get; set; }
 
     [JsonPropertyName("password")]
     public string Password { get; set; }
 
-    [JsonIgnore]
-    public TimeSpan? Duration { get; set; }
+    [JsonPropertyName("ends_at")]
+    public DateTime? EndsAt { get; set; }
+
+    [JsonPropertyName("category")]
+    public string Category { get; set; }
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
+
+    [JsonPropertyName("queue_mode")]
+    public string QueueMode { get; set; }
 
     [JsonPropertyName("duration")]
-    private int? duration
+    public TimeSpan? Duration { get; set; }
+    
+    [JsonPropertyName("max_attemps")]
+    public int MaxAttempts { get; set; }
+
+    public object Clone()
     {
-        get => (int?)Duration?.TotalMinutes;
-        set
-        {
-            if (value == null)
-                Duration = null;
-            else
-                Duration = TimeSpan.FromMinutes(value.Value);
-        }
+        return this;
     }
+}
 
-    #endregion
+public class RoomDifficultyRange
+{
+    [JsonPropertyName("min")]
+    public double Min { get; set; }
 
-    // Only supports retrieval for now
+    [JsonPropertyName("max")]
+    public double Max { get; set; }
+}
 
-    [JsonPropertyName("ends_at")]
-    public DateTimeOffset? EndDate = new DateTimeOffset?();
+public class RoomPlaylistItemStats
+{
+    [JsonPropertyName("count_active")]
+    public int CountActive { get; set; }
 
-    // Todo: Find a better way to do this (https://github.com/ppy/osu-framework/issues/1930)
-    [JsonPropertyName("max_attempts")]
-    private int? maxAttempts
-    {
-        get => MaxAttempts;
-        set => MaxAttempts = value;
-    }
+    [JsonPropertyName("count_total")]
+    public int CountTotal { get; set; }
+
+    [JsonPropertyName("ruleset_ids")]
+    public int[] RulesetIDs { get; set; }
 }

@@ -44,7 +44,7 @@ public interface IUserStats
             Ss = 0,
             Ssh = 0
         },
-        PP = PerfomancePoints,
+        PerfomancePoints = PerfomancePoints,
         RankedScore = RankedScore,
         TotalHits = (int) TotalHits,
         TotalScore = TotalScore,

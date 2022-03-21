@@ -28,7 +28,7 @@ public class MeController : Controller
         _storage = storage;
         _context = context;
     }
-    [Authorization]
+    [RequiredLazerClient]
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -39,7 +39,7 @@ public class MeController : Controller
         return Json(user.ToOsuUser("osu"));
     }
 
-    [Authorization]
+    [RequiredLazerClient]
     [HttpGet("/api/v2/friends")]
     public async Task<IActionResult> GetFriends()
     {

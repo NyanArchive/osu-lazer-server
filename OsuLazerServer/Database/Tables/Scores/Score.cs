@@ -51,6 +51,10 @@ public class DbScore
     [Column("statistics")]
     public string Statistics { get; set; }
 
+    [Column("submitted_in")]
+    public int SubmittedIn { get; set; }
+    [Column("submittion_playlist")]
+    public int SubmittionPlaylist { get; set; }
 
     [Column("passed")]
     public bool Passed { get; set; }
@@ -61,7 +65,7 @@ public class DbScore
         return new APIScore
         {
             Accuracy = Accuracy,
-            Beatmap = beatmap?.ToOsu(),
+            Beatmap = beatmap is not null ? await beatmap?.ToOsu() : null,
             beatmapSet = resolver is not null ? (await resolver.FetchSetAsync(beatmap.BeatmapsetId)).ToBeatmapSet() : null,
             Date = SubmittedAt,
             Rank = ModeUtils.CalculateRank(this),

@@ -127,7 +127,7 @@ public class User
                     Ssh = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.XH && s.UserId == Id),
                 },
                 RankedScore = stats?.RankedScore??0,
-                PP = stats?.PerfomancePoints??0,
+                PerfomancePoints = stats?.PerfomancePoints??0,
                 ReplaysWatchedByOthers = ReplaysWatches,
                 HitAccuracy = stats?.Accuracy??0 * 100,
                 IsRanked = true,

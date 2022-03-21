@@ -26,7 +26,7 @@ public class RankingUser : Statistics
             MaximumCombo = stats.MaximumCombo,
             PlayCount = stats.PlayCount,
             PlayTime = stats.PlayTime,
-            PP = stats.PP,
+            PerfomancePoints = stats.PerfomancePoints,
             RankedScore = stats.RankedScore,
             TotalHits = stats.TotalHits,
             TotalScore = stats.TotalScore,
