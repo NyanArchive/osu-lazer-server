@@ -48,6 +48,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
             var serverRoom = _storage.Rooms[(int)room.RoomID];
             _storage.Rooms.Remove(serverRoom.Id.Value);
             _storage.Channels.Remove(serverRoom.ChannelId);
+            _storage.HubRooms.Remove((int)room.RoomID);
 
         }
         if (room.Host?.UserID == _user.Id)
