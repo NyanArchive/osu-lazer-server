@@ -128,7 +128,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
             foreach (var user in room.Users)
             {
                 user.State = MultiplayerUserState.Results;
-                changeState(user.UserID, MultiplayerUserState.Results);
+                await changeState(user.UserID, MultiplayerUserState.Results);
             }
             
             await Clients.Group(GetGroupId(room.RoomID)).ResultsReady();
