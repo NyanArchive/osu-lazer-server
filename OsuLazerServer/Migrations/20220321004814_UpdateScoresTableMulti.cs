@@ -8,8 +8,13 @@ namespace OsuLazerServer.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>("submittion_playlist", "scores", nullable: true);
-            migrationBuilder.AddColumn<int>("submitted_in", "scores", nullable: true);
+
+            try
+            {
+                Down(migrationBuilder);
+            }catch {}
+            migrationBuilder.AddColumn<int>("submittion_playlist", "scores", nullable: false, defaultValue: 0);
+            migrationBuilder.AddColumn<int>("submitted_in", "scores", nullable: false, defaultValue: 0);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
