@@ -97,7 +97,7 @@ public class MultiplayerController : Controller
 
         var hubRoom = new MultiplayerRoom((long)room.Id)
         {
-            Host = new MultiplayerRoomUser(room.Host.Id),
+            Host = new MultiplayerRoomUser(room.Host.Id),//
             Playlist = room.Playlist.Select(c => new MultiplayerPlaylistItem { Expired = c.Expired, AllowedMods = c.AllowedMods, BeatmapChecksum = c.Beatmap.Checksum, ID = c.ID, PlayedAt = c.PlayedAt, PlaylistOrder = c.PlaylistOrder.GetValueOrDefault(), RequiredMods = c.RequiredMods, BeatmapID = c.BeatmapId, OwnerID = c.OwnerId, RulesetID = c.RulesetId}).ToList(),
             Settings = new MultiplayerRoomSettings
             {
