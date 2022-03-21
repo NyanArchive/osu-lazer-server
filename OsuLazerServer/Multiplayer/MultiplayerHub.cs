@@ -2,6 +2,7 @@
 using NuGet.Packaging;
 using osu.Game.Online.API;
 using osu.Game.Online.Multiplayer;
+using osu.Game.Online.Multiplayer.MatchTypes.TeamVersus;
 using osu.Game.Online.Rooms;
 using OsuLazerServer.Database.Tables;
 using OsuLazerServer.Models.Chat;
@@ -31,8 +32,8 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
     private async Task UpdateRoomState()
     {
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
-        
 
+        await Clients.Group(GetGroupId(room.RoomID)).RoomStateChanged(room.State);
     }
     public async Task LeaveRoom()
     {
@@ -44,7 +45,10 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         
         if (room.Users.Count == 1)
         {
-            _storage.Rooms.Remove((int) room.RoomID);
+            var serverRoom = _storage.Rooms[(int)room.RoomID];
+            _storage.Rooms.Remove(serverRoom.Id.Value);
+            _storage.Channels.Remove(serverRoom.ChannelId);
+
         }
         if (room.Host?.UserID == _user.Id)
         {
@@ -113,8 +117,8 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         {
             foreach (var user in room.Users)
             {
-                user.State = MultiplayerUserState.Playing;
-                changeState(user.UserID, MultiplayerUserState.Playing);
+                user.State = user.State == MultiplayerUserState.Spectating ? MultiplayerUserState.Spectating : MultiplayerUserState.Playing;
+                changeState(user.UserID, user.State == MultiplayerUserState.Spectating ? MultiplayerUserState.Spectating : MultiplayerUserState.Playing);
             }
 
             await Clients.Group(GetGroupId(room.RoomID)).MatchStarted();
@@ -125,15 +129,19 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         if (room.Users.All(c => c.State == MultiplayerUserState.FinishedPlay || c.State == MultiplayerUserState.Spectating))
         {
+   
+        
             foreach (var user in room.Users)
             {
-                user.State = MultiplayerUserState.Results;
-                await changeState(user.UserID, MultiplayerUserState.Results);
+                await changeState(user.UserID, MultiplayerUserState.Idle);
             }
             
+           
             await Clients.Group(GetGroupId(room.RoomID)).ResultsReady();
-            
             room.Playlist[0].PlayedAt = DateTimeOffset.Now;
+
+            room.State = MultiplayerRoomState.Open;
+            await UpdateRoomState();
             if (room.Playlist.Any(c => c.PlayedAt is null))
             {
                 room.Settings.PlaylistItemId = room.Playlist.FirstOrDefault(c => c.PlayedAt is null).ID;
@@ -162,6 +170,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
                 room.Settings.PlaylistItemId = 0;
                 await Clients.Group(GetGroupId(room.RoomID)).SettingsChanged(room.Settings);
             }
+            return;
         }
 
         await Clients.Group(GetGroupId(room.RoomID)).UserStateChanged(_user.Id, newState);
@@ -172,6 +181,10 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
 
+
+        var user = room.Users.FirstOrDefault(c => c.UserID == userId);
+
+        user.State = newState;
         await Clients.Group(GetGroupId(room.RoomID)).UserStateChanged(userId, newState);
     }
 

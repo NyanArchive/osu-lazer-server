@@ -289,7 +289,7 @@ public class BeatmapsController : Controller
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
-        var scoreToken = DateTimeOffset.Now.ToUnixTimeMilliseconds() + new Random().Next(0, 30000);
+        var scoreToken = (DateTimeOffset.Now.ToUnixTimeMilliseconds() + new Random().Next(0, 30000)) / 1000;
         _storage.ScoreTokens.Add(scoreToken, user);
 
         return Json(new APIScoreToken
