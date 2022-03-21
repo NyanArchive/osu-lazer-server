@@ -109,7 +109,7 @@ public class MultiplayerController : Controller
             },
             State = MultiplayerRoomState.Open,
             Users = new List<MultiplayerRoomUser>(),
-            MatchState = null
+            MatchState = null,
         };
         _storage.HubRooms.TryAdd(room.Id.Value, hubRoom);
         _storage.Rooms.TryAdd(room.Id.Value, room);

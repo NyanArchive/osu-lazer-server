@@ -165,29 +165,29 @@ public class BeatmapsController : Controller
             BeatmapId = beatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator(beatmap, new ScoreInfo
-            {
-                Accuracy = body.Accuracy,
-                Combo = body.MaxCombo,
-                MaxCombo = body.MaxCombo,
-                User = new APIUser { Username = "owo" },
-                Ruleset = ruleset,
-                Date = DateTimeOffset.UtcNow,
-                Passed = body.Passed,
-                TotalScore = body.TotalScore,
-                Statistics = new Dictionary<HitResult, int>()
+            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator()
+                ?.Calculate(new ScoreInfo
                 {
-                    [HitResult.Perfect] = body.Statistics.Perfect,
-                    [HitResult.Good] = body.Statistics.Goods,
-                    [HitResult.Great] = body.Statistics.Greats,
-                    [HitResult.Meh] = body.Statistics.Meh,
-                    [HitResult.Miss] = body.Statistics.Misses,
-                    [HitResult.Ok] = body.Statistics.Ok,
-                    [HitResult.None] = body.Statistics.None
-                },
-                HasReplay = false
-            })
-                ?.Calculate().Total,
+                    Accuracy = body.Accuracy,
+                    Combo = body.MaxCombo,
+                    MaxCombo = body.MaxCombo,
+                    User = new APIUser { Username = "owo" },
+                    Ruleset = ruleset,
+                    Date = DateTimeOffset.UtcNow,
+                    Passed = body.Passed,
+                    TotalScore = body.TotalScore,
+                    Statistics = new Dictionary<HitResult, int>()
+                    {
+                        [HitResult.Perfect] = body.Statistics.Perfect,
+                        [HitResult.Good] = body.Statistics.Goods,
+                        [HitResult.Great] = body.Statistics.Greats,
+                        [HitResult.Meh] = body.Statistics.Meh,
+                        [HitResult.Miss] = body.Statistics.Misses,
+                        [HitResult.Ok] = body.Statistics.Ok,
+                        [HitResult.None] = body.Statistics.None
+                    },
+                    HasReplay = false
+                }, beatmap).Total,
             SubmittedAt = DateTimeOffset.UtcNow,
             TotalScore = body.TotalScore,
             RuleSetId = body.RulesetId
@@ -339,29 +339,29 @@ public class BeatmapsController : Controller
             BeatmapId = item.BeatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator(beatmap, new ScoreInfo
-            {
-                Accuracy = body.Accuracy,
-                Combo = body.MaxCombo,
-                MaxCombo = body.MaxCombo,
-                User = new APIUser { Username = "owo" },
-                Ruleset = ruleset,
-                Date = DateTimeOffset.UtcNow,
-                Passed = body.Passed,
-                TotalScore = body.TotalScore,
-                Statistics = new Dictionary<HitResult, int>()
+            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator()
+                ?.Calculate(new ScoreInfo
                 {
-                    [HitResult.Perfect] = body.Statistics.Perfect,
-                    [HitResult.Good] = body.Statistics.Goods,
-                    [HitResult.Great] = body.Statistics.Greats,
-                    [HitResult.Meh] = body.Statistics.Meh,
-                    [HitResult.Miss] = body.Statistics.Misses,
-                    [HitResult.Ok] = body.Statistics.Ok,
-                    [HitResult.None] = body.Statistics.None
-                },
-                HasReplay = false
-            })
-                ?.Calculate().Total,
+                    Accuracy = body.Accuracy,
+                    Combo = body.MaxCombo,
+                    MaxCombo = body.MaxCombo,
+                    User = new APIUser { Username = "owo" },
+                    Ruleset = ruleset,
+                    Date = DateTimeOffset.UtcNow,
+                    Passed = body.Passed,
+                    TotalScore = body.TotalScore,
+                    Statistics = new Dictionary<HitResult, int>()
+                    {
+                        [HitResult.Perfect] = body.Statistics.Perfect,
+                        [HitResult.Good] = body.Statistics.Goods,
+                        [HitResult.Great] = body.Statistics.Greats,
+                        [HitResult.Meh] = body.Statistics.Meh,
+                        [HitResult.Miss] = body.Statistics.Misses,
+                        [HitResult.Ok] = body.Statistics.Ok,
+                        [HitResult.None] = body.Statistics.None
+                    },
+                    HasReplay = false
+                }, beatmap).Total,
             SubmittedIn = room.Id.Value,
             SubmittionPlaylist = item.ID,
             SubmittedAt = DateTimeOffset.UtcNow,
