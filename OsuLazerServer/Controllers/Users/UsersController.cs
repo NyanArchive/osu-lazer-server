@@ -120,7 +120,7 @@ public class UsersController : Controller
             Username = body.Username,
             NicknameHistory = new string[] { },
 #if !DEBUG
-            Country = awaitIPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString()),
+            Country = await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString()),
 #else
             Country = "US",
 #endif
