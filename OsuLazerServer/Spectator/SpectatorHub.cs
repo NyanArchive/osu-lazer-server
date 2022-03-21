@@ -22,6 +22,8 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
 
     public override async Task OnConnectedAsync()
     {
+        if (_user is null)
+            Context.Abort();
         _storage.UserStates.TryAdd(_user.Id, new SpectatorState
         {
             Mods = new List<APIMod>(),

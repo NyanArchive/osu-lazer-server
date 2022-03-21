@@ -388,6 +388,10 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
     }
 
 
+    public override Task OnConnectedAsync()
+    {
+        return base.OnConnectedAsync();
+    }
 
     public string GetGroupId(long id) => $"multi:{id}";
 }

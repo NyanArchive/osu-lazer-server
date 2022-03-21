@@ -12,8 +12,8 @@ builder.Services.AddDbContext<LazerContext>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSignalR(c => c.EnableDetailedErrors = true).AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS);
-
+builder.Services.AddSignalR(c => c.ClientTimeoutInterval = TimeSpan.FromDays(31)).AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS);
+//Should work?
 builder.Services.AddMemoryCache();
 #if !DEBUG
 builder.Services.AddStackExchangeRedisCache(args => args.Configuration = Environment.GetEnvironmentVariable("REDIS_URL"));
