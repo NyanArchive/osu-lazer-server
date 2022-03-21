@@ -123,7 +123,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         }
 
 
-        if (room.Users.All(c => c.State == MultiplayerUserState.FinishedPlay))
+        if (room.Users.All(c => c.State == MultiplayerUserState.FinishedPlay || c.State == MultiplayerUserState.Spectating))
         {
             foreach (var user in room.Users)
             {
