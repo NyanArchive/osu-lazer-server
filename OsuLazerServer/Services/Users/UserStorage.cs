@@ -231,33 +231,33 @@ public class UserStorage : IUserStorage, IServiceScope
         return stats.FirstOrDefault(c => c.Value.Id == userId).Key;
     }
 
-    public async Task<int> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false)
+    public async Task<double> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;
 
-        var rank = 0;
         if (!forceFetch)
         {
-            var cachedRank = await GetCachedInt($"leaderboard:{mode}:{userId}:perfomance");
+            var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:perfomance");
 
             if (cachedRank is not null)
             {
-                return rank;
+                return BitConverter.ToDouble(cachedRank);
             }
         }
 
         var context = new LazerContext();
 
-        var userScores = context.Scores.Where(c => c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST);
+        var userScores = context.Scores.Where(c => c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST && !c.Mods.Contains("RX"));
 
-        var performance = 0;
+        double performance = 0;
 
         foreach (var score in userScores)
         {
-            
-            if ((await BeatmapUtils.GetBeatmapStatus(score.BeatmapId)) != "ranked")
+            var status = await BeatmapUtils.GetBeatmapStatus(score.BeatmapId);
+            Console.WriteLine($"beatmap {score.BeatmapId}: status => {status}");
+            if (status != "ranked")
                 continue;
-            performance += (int)score.PerfomancePoints;
+            performance += score.PerfomancePoints;
         }
 
         await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(performance));
@@ -287,6 +287,7 @@ public class UserStorage : IUserStorage, IServiceScope
         if (await userScores.CountAsync() == 0)
             return 0.0;
         var accuracy = userScores.Select(c => c.Accuracy).ToList().Average();
+        
 
         await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(accuracy));
         return accuracy * 100;
@@ -295,6 +296,7 @@ public class UserStorage : IUserStorage, IServiceScope
 
     public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
     {
+
         return ruleset switch
         {
             0 => await LeaderboardUtils.GetLeaderboardForOsu(),

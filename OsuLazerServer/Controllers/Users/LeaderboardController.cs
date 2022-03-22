@@ -25,10 +25,8 @@ public class LeaderboardController : Controller
     
     [HttpGet("{mode}/performance")]
     
-    public async Task<IActionResult> GetRankingPerfomance([FromRoute(Name = "mode")] string mode, [FromQuery(Name = "page")] int page) 
+    public async Task<IActionResult> GetRankingPerfomance([FromRoute(Name = "mode")] string mode, [FromQuery(Name = "page")] int page)
     {
-
-        
         if (!_storage.GlobalLeaderboardCache.TryGetValue($"{mode}:perfomance", out var cachedLeaderboard))
         {
             //Caclulating...
@@ -38,26 +36,26 @@ public class LeaderboardController : Controller
 
             return Json(new RankingResponse
             {
-                Rankings = leaderboard.Select(u => RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
                     "fruits" => 2,
                     "mania" => 3
-                })).ToList(),
+                })))).ToList(),
                 Total = leaderboard.Count
             });
         }
 
         return Json(new RankingResponse
         {
-            Rankings = cachedLeaderboard.Select(u => RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
             {
                 "osu" => 0,
                 "taiko" => 1,
                 "fruits" => 2,
                 "mania" => 3
-            })).ToList(),
+            })))).ToList(),
             Total = cachedLeaderboard.Count
         });
     }
@@ -77,26 +75,26 @@ public class LeaderboardController : Controller
 
             return Json(new RankingResponse
             {
-                Rankings = leaderboard.Select(u => RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
                     "fruits" => 2,
                     "mania" => 3
-                })).ToList(),
+                })))).ToList(),
                 Total = leaderboard.Count
             });
         }
 
         return Json(new RankingResponse
         {
-            Rankings = cachedLeaderboard.Select(u => RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
             {
                 "osu" => 0,
                 "taiko" => 1,
                 "fruits" => 2,
                 "mania" => 3
-            })).ToList(),
+            })))).ToList(),
             Total = cachedLeaderboard.Count
         });
     }

@@ -154,6 +154,30 @@ public class BeatmapsController : Controller
         var beatmap = new ProcessorWorkingBeatmap(beatmapStream, beatmapId);
         
         var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        var pp = ruleset.CreateInstance().CreatePerformanceCalculator()
+            ?.Calculate(new ScoreInfo
+            {
+                Accuracy = body.Accuracy,
+                Combo = body.MaxCombo,
+                MaxCombo = body.MaxCombo,
+                User = new APIUser {Username = "owo"},
+                Ruleset = ruleset,
+                Date = DateTimeOffset.UtcNow,
+                Passed = body.Passed,
+                TotalScore = body.TotalScore,
+                Statistics = new Dictionary<HitResult, int>()
+                {
+                    [HitResult.Perfect] = body.Statistics.Perfect,
+                    [HitResult.Good] = body.Statistics.Goods,
+                    [HitResult.Great] = body.Statistics.Greats,
+                    [HitResult.Meh] = body.Statistics.Meh,
+                    [HitResult.Miss] = body.Statistics.Misses,
+                    [HitResult.Ok] = body.Statistics.Ok,
+                    [HitResult.None] = body.Statistics.None
+                },
+                HasReplay = false
+            }, beatmap).Total;
         
         var score = new DbScore
         {
@@ -165,29 +189,7 @@ public class BeatmapsController : Controller
             BeatmapId = beatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator()
-                ?.Calculate(new ScoreInfo
-                {
-                    Accuracy = body.Accuracy,
-                    Combo = body.MaxCombo,
-                    MaxCombo = body.MaxCombo,
-                    User = new APIUser { Username = "owo" },
-                    Ruleset = ruleset,
-                    Date = DateTimeOffset.UtcNow,
-                    Passed = body.Passed,
-                    TotalScore = body.TotalScore,
-                    Statistics = new Dictionary<HitResult, int>()
-                    {
-                        [HitResult.Perfect] = body.Statistics.Perfect,
-                        [HitResult.Good] = body.Statistics.Goods,
-                        [HitResult.Great] = body.Statistics.Greats,
-                        [HitResult.Meh] = body.Statistics.Meh,
-                        [HitResult.Miss] = body.Statistics.Misses,
-                        [HitResult.Ok] = body.Statistics.Ok,
-                        [HitResult.None] = body.Statistics.None
-                    },
-                    HasReplay = false
-                }, beatmap).Total,
+            PerfomancePoints = pp??0,
             SubmittedAt = DateTimeOffset.UtcNow,
             TotalScore = body.TotalScore,
             RuleSetId = body.RulesetId
@@ -210,7 +212,7 @@ public class BeatmapsController : Controller
         {
             stats.RankedScore += score.TotalScore;
 
-            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints ?? 0);
+            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints);
         }
         else
         {
@@ -328,7 +330,30 @@ public class BeatmapsController : Controller
         var beatmap = new ProcessorWorkingBeatmap(beatmapStream, item.BeatmapId);
         
         var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
-        
+
+        var pp = ruleset.CreateInstance().CreatePerformanceCalculator()
+            ?.Calculate(new ScoreInfo
+            {
+                Accuracy = body.Accuracy,
+                Combo = body.MaxCombo,
+                MaxCombo = body.MaxCombo,
+                User = new APIUser {Username = "owo"},
+                Ruleset = ruleset,
+                Date = DateTimeOffset.UtcNow,
+                Passed = body.Passed,
+                TotalScore = body.TotalScore,
+                Statistics = new Dictionary<HitResult, int>()
+                {
+                    [HitResult.Perfect] = body.Statistics.Perfect,
+                    [HitResult.Good] = body.Statistics.Goods,
+                    [HitResult.Great] = body.Statistics.Greats,
+                    [HitResult.Meh] = body.Statistics.Meh,
+                    [HitResult.Miss] = body.Statistics.Misses,
+                    [HitResult.Ok] = body.Statistics.Ok,
+                    [HitResult.None] = body.Statistics.None
+                },
+                HasReplay = false
+            }, beatmap).Total;
         var score = new DbScore
         {
             Accuracy = body.Accuracy,
@@ -339,29 +364,7 @@ public class BeatmapsController : Controller
             BeatmapId = item.BeatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = ruleset.CreateInstance().CreatePerformanceCalculator()
-                ?.Calculate(new ScoreInfo
-                {
-                    Accuracy = body.Accuracy,
-                    Combo = body.MaxCombo,
-                    MaxCombo = body.MaxCombo,
-                    User = new APIUser { Username = "owo" },
-                    Ruleset = ruleset,
-                    Date = DateTimeOffset.UtcNow,
-                    Passed = body.Passed,
-                    TotalScore = body.TotalScore,
-                    Statistics = new Dictionary<HitResult, int>()
-                    {
-                        [HitResult.Perfect] = body.Statistics.Perfect,
-                        [HitResult.Good] = body.Statistics.Goods,
-                        [HitResult.Great] = body.Statistics.Greats,
-                        [HitResult.Meh] = body.Statistics.Meh,
-                        [HitResult.Miss] = body.Statistics.Misses,
-                        [HitResult.Ok] = body.Statistics.Ok,
-                        [HitResult.None] = body.Statistics.None
-                    },
-                    HasReplay = false
-                }, beatmap).Total,
+            PerfomancePoints = pp??0,
             SubmittedIn = room.Id.Value,
             SubmittionPlaylist = item.ID,
             SubmittedAt = DateTimeOffset.UtcNow,
@@ -386,7 +389,7 @@ public class BeatmapsController : Controller
         {
             stats.RankedScore += score.TotalScore;
 
-            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints ?? 0);
+            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints);
         }
         else
         {

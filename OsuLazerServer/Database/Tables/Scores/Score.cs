@@ -37,7 +37,7 @@ public class DbScore
     
     [Column("accuracy")] public double Accuracy { get; set; }
     
-    [Column("perfomance_points")] public double? PerfomancePoints { get; set; }
+    [Column("perfomance_points")] public double PerfomancePoints { get; set; }
     
     [Column("max_combo")] public int MaxCombo { get; set; }
     

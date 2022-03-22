@@ -109,6 +109,8 @@ public class ChannelsController : Controller
 
         var channel = await _storage.GetChannelAsync(channelId, _context);
 
+        if (channel is null)
+            return NotFound();
         if (!channel.Users.Contains(user.Id))
             return BadRequest();
         
