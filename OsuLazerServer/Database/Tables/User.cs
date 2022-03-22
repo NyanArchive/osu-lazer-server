@@ -117,7 +117,13 @@ public class User
                 TotalHits = (int) (stats?.TotalHits ?? 0),
                 TotalScore = stats?.TotalScore??0,
                 CountryRank = 1,
-                GlobalRank = ModeUtils.GetRank(mode, Id),
+                GlobalRank = storage is not null ? storage.GetUserRank(Id, mode switch
+                {
+                    "osu" => 0,
+                    "taiko" => 1,
+                    "fruits" => 2,
+                    "mania" => 3
+                }, false).GetAwaiter().GetResult() : 0,
                 GradeCounts = new GradeCounts
                 {
                     A = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id),

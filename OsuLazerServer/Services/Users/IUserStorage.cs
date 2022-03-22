@@ -25,14 +25,15 @@ public interface IUserStorage
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; }
     public Dictionary<int, PlaylistItem> PlaylistItems { get; set; }
 
-    public static Sender SystemSender { get; set; }
-    
-    
     public Task NotifyUser(int userId, string message);
     public Task AddUpdate(int userId, Update update);
     public Task<Update> GetUpdatesForUser(int userId);
     public Task<Channel> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
     public Task ForceJoinChannel(int id, int channelId);
     User GetUser(string token);
-    
+
+    public Task<int> GetUserRank(int userId, int mode, bool forceFetch = false);
+
+    public Task<int> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false);
+    public Task<double> GetUserHitAccuracy(int userId, int mode, bool forceFetch = false);
 }

@@ -8,13 +8,13 @@ public class IPUtils
     {
         var response = await (new HttpClient()).GetAsync($"http://ip-api.com/json/{country}");
 
-        if (!response.IsSuccessStatusCode)
+         if (!response.IsSuccessStatusCode)
         {
             return "US";
         }
 
-        var body = (dynamic) JsonSerializer.Deserialize<object>(await response.Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Deserialize<Dictionary<string, object>>(await response.Content.ReadAsStringAsync())!;
 
-        return body["countryCode"];
+        return body["countryCode"].ToString();
     }
 }

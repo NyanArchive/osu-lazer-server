@@ -11,7 +11,9 @@ using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models;
 using OsuLazerServer.Models.Chat;
 using OsuLazerServer.Models.Multiplayer;
+using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.SpectatorClient;
+using OsuLazerServer.Utils;
 using UniqueIdGenerator.Net;
 using Channel = OsuLazerServer.Models.Chat.Channel;
 
@@ -74,7 +76,6 @@ public class UserStorage : IUserStorage, IServiceScope
         updates.Messages.AddRange(update.Messages);
         updates.UpdateRecievedAt = DateTimeOffset.Now;
     }
-
     public async Task<Update> GetUpdatesForUser(int userId)
     {
         if (!Updates.TryGetValue(userId, out var updates))
@@ -91,7 +92,6 @@ public class UserStorage : IUserStorage, IServiceScope
         
         return updates;
     }
-
     public async Task<Channel> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false)
     {
         if (Channels.TryGetValue(channelId, out var channel))
@@ -142,7 +142,6 @@ public class UserStorage : IUserStorage, IServiceScope
             Messages = new List<Message>()
         });
     }
-
     public User? GetUser(string token)
     {
         if (!Users.TryGetValue(token, out var u))
@@ -202,6 +201,119 @@ public class UserStorage : IUserStorage, IServiceScope
                 }
             }
         });
+    }
+    
+    public async Task<int> GetUserRank(int userId, int RuleSetId, bool forceFetch = false)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var rank = 0;
+        if (!forceFetch)
+        {
+            var cachedRank = await GetCachedInt($"leaderboard:{RuleSetId}:{userId}:rank");
+
+            if (cachedRank is not null)
+            {
+                return rank;
+            }
+        }
+
+        var context = new LazerContext();
+
+        Dictionary<int, IUserStats> stats = await GetLeaderboard(RuleSetId);
+
+
+        foreach (var kvp in stats)
+        {
+            await cache.SetAsync($"leaderboard:{RuleSetId}:{userId}:rank", BitConverter.GetBytes(kvp.Key));
+        }
+        
+        return stats.FirstOrDefault(c => c.Value.Id == userId).Key;
+    }
+
+    public async Task<int> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var rank = 0;
+        if (!forceFetch)
+        {
+            var cachedRank = await GetCachedInt($"leaderboard:{mode}:{userId}:perfomance");
+
+            if (cachedRank is not null)
+            {
+                return rank;
+            }
+        }
+
+        var context = new LazerContext();
+
+        var userScores = context.Scores.Where(c => c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST);
+
+        var performance = 0;
+
+        foreach (var score in userScores)
+        {
+            
+            if ((await BeatmapUtils.GetBeatmapStatus(score.BeatmapId)) != "ranked")
+                continue;
+            performance += (int)score.PerfomancePoints;
+        }
+
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(performance));
+        return performance;
+    }
+
+    public async Task<double> GetUserHitAccuracy(int userId, int mode, bool forceFetch = false)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var rank = 0;
+        if (!forceFetch)
+        {
+            var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:hitaccuracy");
+
+            if (cachedRank is not null)
+            {
+                return BitConverter.ToDouble(cachedRank) * 100;
+            }
+        }
+        
+        var context = new LazerContext();
+
+        var userScores = context.Scores.Where(c => c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST);
+        
+        Console.WriteLine($"User scores: {userId}: {userScores.Count()} => {(userScores.Any() ? userScores.Select(c => c.Accuracy).ToList().Average() : 0)}");
+        if (await userScores.CountAsync() == 0)
+            return 0.0;
+        var accuracy = userScores.Select(c => c.Accuracy).ToList().Average();
+
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(accuracy));
+        return accuracy * 100;
+    }
+
+
+    public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
+    {
+        return ruleset switch
+        {
+            0 => await LeaderboardUtils.GetLeaderboardForOsu(),
+            1 => await LeaderboardUtils.GetLeaderboardForTaiko(),
+            2 => await LeaderboardUtils.GetLeaderboardForFruits(),
+            3 => await LeaderboardUtils.GetLeaderboardForMania()
+        };
+    }
+    
+    private async Task<int?> GetCachedInt(string key)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var rawValue = await cache.GetAsync(key);
+
+        if (rawValue is null)
+            return null;
+
+        return BitConverter.ToInt32(rawValue);
     }
     public void Dispose()
     {

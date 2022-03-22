@@ -9,7 +9,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
 
     public async Task<List<BeatmapSet?>> FetchSets(string query, string mode, int offset, bool nsfw, string status = "any")
     {
-        var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
 
         if (!request.IsSuccessStatusCode)
             return null;
@@ -32,7 +32,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
                 return value;
         } 
         
-        var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search/beatmapset/{setId}");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmapset/{setId}");
 
         var body = JsonSerializer.Deserialize<BeatmapSet>(await request.Content.ReadAsStringAsync());
         if (body is not null)
@@ -50,7 +50,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
                 return value;
         }
 
-        var request = await (new HttpClient()).GetAsync($"https://api.nerina.pw/search/beatmap/{beatmapId}");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmap/{beatmapId}");
 
         var body = JsonSerializer.Deserialize<Beatmap>(await request.Content.ReadAsStringAsync());
         

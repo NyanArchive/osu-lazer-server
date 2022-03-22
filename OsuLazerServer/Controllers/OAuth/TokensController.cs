@@ -10,6 +10,7 @@ using OsuLazerServer.Models;
 using OsuLazerServer.Models.Chat;
 using OsuLazerServer.Models.Response.OAuth;
 using OsuLazerServer.Services.Users;
+using OsuLazerServer.Utils;
 
 namespace OsuLazerServer.Controllers.OAuth;
 
@@ -77,7 +78,25 @@ public class TokensController : Controller
                 ErrorIdentifier = "-1"
             });
         }
+#if !DEBUG
+        if (user.Country == "XX")
+        {
+            user.Country = await IPUtils.GetCountry(Request.Headers["X-Real-IP"]);
+            await _context.SaveChangesAsync();
+        }
 
+
+        if (user.Country != (await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString())))
+        {
+            Response.StatusCode = 401;
+            return Json(new OAuthError
+            {
+                Hint = "CSetlia: Please, contact support (001).",
+                Message = "Please, contact support (001)",
+                ErrorIdentifier = "-1"
+            });
+        }
+#endif
 
         var token = _tokensService.GenerateToken();
         _storage.Users.Add(token.AccessToken, user);
@@ -101,7 +120,6 @@ public class TokensController : Controller
                 ChannelId = 99912,
                 LastMessageId = null,
                 LastReadId = null
-
             };
         
             channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/p9BhPXHZWB\nGit: http://s2.zloserver.com:32333/dhcpcd9/osu-lazer-server\n(DM me in Discord to activate account.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
@@ -110,6 +128,7 @@ public class TokensController : Controller
                 Channels = new List<Channel>() { channel },
                 Messages = channel.Messages
             });
+            await _storage.ForceJoinChannel(user.Id, 1); //Join #osu channel.
         });
         return Json(token);
     }

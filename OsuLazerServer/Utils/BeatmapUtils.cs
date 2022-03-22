@@ -1,5 +1,7 @@
-﻿using OsuLazerServer.Database.Tables.Scores;
+﻿using System.Text.Json;
+using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models.Response.Beatmaps;
+using OsuLazerServer.Services.Beatmaps;
 
 namespace OsuLazerServer.Utils;
 
@@ -57,6 +59,16 @@ public class BeatmapUtils
 
         return response;
     }
+
+    public static async Task<string> GetBeatmapStatus(int beatmapId)
+    {
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmap/{beatmapId}");
+
+        var body = JsonSerializer.Deserialize<Beatmap>(await request.Content.ReadAsStringAsync());
+        
+        return body?.Status??"graveyard";
+    }
+
 
     public static ScoreRank ScoreRankFromString(string rank) => rank switch
     {

@@ -11,7 +11,7 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
 {
     private IUserStorage _storage;
     private ILogger<SpectatorHub> _logger;
-    private User _user =>
+    private User? _user =>
         _storage.GetUser(Context.GetHttpContext().Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
 
     public SpectatorHub(IUserStorage storage, ILogger<SpectatorHub> logger)
@@ -23,7 +23,10 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
     public override async Task OnConnectedAsync()
     {
         if (_user is null)
+        {
+            return;
             Context.Abort();
+        }
         _storage.UserStates.TryAdd(_user.Id, new SpectatorState
         {
             Mods = new List<APIMod>(),

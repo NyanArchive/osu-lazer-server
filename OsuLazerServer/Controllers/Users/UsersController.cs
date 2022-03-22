@@ -100,7 +100,7 @@ public class UsersController : Controller
                 Username = new[] {"Username or email already took"}
             });
 
-        if (!Regex.IsMatch(body.Username, @"^[a-zA-Z0-9_-]{3,15}$"))
+        if (!Regex.IsMatch(body.Username, @"^[a-zA-Z0-9_-\ ]{3,15}$"))
             return await GenerateRegistrationError(new RegistrationRequestErrors.UserErrors
             {
                 Username = new[] {"Invalid username"}
