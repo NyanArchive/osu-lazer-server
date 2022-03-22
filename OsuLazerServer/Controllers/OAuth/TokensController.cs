@@ -11,6 +11,7 @@ using OsuLazerServer.Models.Chat;
 using OsuLazerServer.Models.Response.OAuth;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
+using Sentry;
 
 namespace OsuLazerServer.Controllers.OAuth;
 
