@@ -388,9 +388,16 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
     }
 
 
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
-        return base.OnConnectedAsync();
+        await Groups.AddToGroupAsync(Context.ConnectionId, "connected");
+        await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "connected");
+        await base.OnDisconnectedAsync(exception);
     }
 
     public string GetGroupId(long id) => $"multi:{id}";

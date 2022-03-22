@@ -12,7 +12,8 @@ builder.Services.AddDbContext<LazerContext>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSignalR(c => c.ClientTimeoutInterval = TimeSpan.FromDays(31)).AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS);
+builder.Services.AddSignalR()
+    .AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS); 
 //Should work?
 builder.Services.AddMemoryCache();
 #if !DEBUG
@@ -35,6 +36,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 app.MapControllers();
+app.UseWebSockets();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<MultiplayerHub>("/multiplayer");
