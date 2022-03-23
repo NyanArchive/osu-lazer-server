@@ -5,6 +5,7 @@ using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables;
 using OsuLazerServer.Models.Chat;
+using OsuLazerServer.Services.Commands;
 using OsuLazerServer.Services.Users;
 using Channel = OsuLazerServer.Models.Chat.Channel;
 
@@ -19,11 +20,13 @@ public class ChannelsController : Controller
 
     private IUserStorage _storage;
     private LazerContext _context;
+    private ICommandManager _commands;
 
-    public ChannelsController(IUserStorage storage, LazerContext context)
+    public ChannelsController(IUserStorage storage, LazerContext context, ICommandManager manager)
     {
         _storage = storage;
         _context = context;
+        _commands = manager;
     }
 
     [HttpGet("channels")]
@@ -128,6 +131,49 @@ public class ChannelsController : Controller
         if (!channel.Users.Contains(user.Id))
             return BadRequest();
 
+        if (body.Message.StartsWith("!"))
+        {
+            var command = _commands.GetCommandByName(body.Message);
+
+            if (command is null)
+            {
+                return Json(new Message
+                {
+                    Content = "Command not found.",
+                    Sender = UserStorage.SystemSender,
+                    Timetamp = DateTime.Now,
+                    ChannelId = channel.ChannelId,
+                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                    SenderId = UserStorage.SystemSender.Id
+                });
+            }
+            
+            var result = command.Action.Invoke(body.Message.Split(" ").ToList().GetRange(1, body.Message.Split(" ").Length - 1));
+
+            if (command.AdminRequired && !user.IsAdmin)
+            {
+                return Json(new Message
+                {
+                    Content = "No permissions.",
+                    Sender = UserStorage.SystemSender,
+                    Timetamp = DateTime.Now,
+                    ChannelId =  channel.ChannelId,
+                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                    SenderId = UserStorage.SystemSender.Id
+                }); 
+            }
+            return Json(new Message
+            {
+                Content = result,
+                Sender = UserStorage.SystemSender,
+                Timetamp = DateTime.Now,
+                ChannelId = channel.ChannelId,
+                MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                SenderId = UserStorage.SystemSender.Id
+            });
+        }
+
+        
         foreach (var uId in channel.Users.Where(c => c != user.Id))
         {
             var message = new Message

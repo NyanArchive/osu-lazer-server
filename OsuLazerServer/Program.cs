@@ -2,6 +2,7 @@ using osu.Game.Online;
 using OsuLazerServer.Database;
 using OsuLazerServer.Multiplayer;
 using OsuLazerServer.Services.Beatmaps;
+using OsuLazerServer.Services.Commands;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Services.Wiki;
 using OsuLazerServer.SpectatorClient;
@@ -15,6 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR()
     .AddMessagePackProtocol(options => options.SerializerOptions = SignalRUnionWorkaroundResolver.OPTIONS); 
 builder.Services.AddSentry();
+
 
 //Should work?
 builder.Services.AddMemoryCache();
@@ -37,6 +39,7 @@ builder.Services.AddScoped<ITokensService, TokenService>();
 builder.Services.AddSingleton<IUserStorage, UserStorage>();
 builder.Services.AddScoped<IBeatmapSetResolver, BeatmapSetResolverService>();
 builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
+builder.Services.AddSingleton<ICommandManager, CommandManagerService>();
 
 var app = builder.Build();
 

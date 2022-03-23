@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
@@ -45,8 +46,11 @@ public class User
     [Column("taiko_stats")] public UsersStatsTaiko StatsTaiko { get; set; }
     [Column("fruits_stats")] public UsersStatsFruits StatsFruits { get; set; }
     [Column("mania_stats")] public UsersStatsMania StatsMania { get; set; }
-    
     [Column("joined_at")] public DateTime JoinedAt { get; set; }
+    [Column("is_admin")]
+    [Required]
+    [DefaultValue(false)]
+    public bool IsAdmin { get; set; }
 
 
     public async Task FetchUserStats()
@@ -98,7 +102,7 @@ public class User
             Country =  new Country
             {
                 Code = Country,
-                Name = new CountryProvider().GetCountry(Country).CommonName
+                Name = new CountryProvider()?.GetCountry(Country)?.CommonName??"Unknown"
             },
             CountryCode = Country,
             Cover = new Cover
