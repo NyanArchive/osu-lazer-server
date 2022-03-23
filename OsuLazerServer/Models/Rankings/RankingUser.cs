@@ -22,7 +22,7 @@ public class RankingUser : Statistics
             GlobalRank =  await storage.GetUserRank(user.Id, mode),
             GradeCounts = stats.GradeCounts,
             HitAccuracy = await storage.GetUserHitAccuracy(user.Id, mode), //Rewrite this.
-            IsRanked = true,
+            IsRanked = (await storage.GetUserPerfomancePoints(user.Id, mode) > 1),
             IsActive = true,
             MaximumCombo = stats.MaximumCombo,
             PlayCount = stats.PlayCount,

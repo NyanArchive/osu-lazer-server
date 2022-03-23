@@ -94,9 +94,10 @@ public class Commands
                     var stats = ServerStats.FromJson(score.Statistics);
                     var beatmap = new ProcessorWorkingBeatmap(await BeatmapUtils.GetBeatmapStream(score.BeatmapId),
                         score.BeatmapId);
-                    ;
                     double perfomance = 0;
-                    if (await BeatmapUtils.GetBeatmapStatus(score.BeatmapId) == "ranked")
+                    var isRanked = await BeatmapUtils.GetBeatmapStatus(score.BeatmapId) == "ranked";
+                    if (isRanked)
+                    {
                         perfomance = ruleset.CreateInstance().CreatePerformanceCalculator()?.Calculate(new ScoreInfo
                         {
                             Accuracy = score.Accuracy,
@@ -118,7 +119,7 @@ public class Commands
                                 [HitResult.None] = stats.None
                             },
                             HasReplay = false
-                        }, beatmap).Total ?? 0;
+                        }, beatmap).Total ?? 0;}
 
 
                     score.PerfomancePoints = perfomance;
@@ -131,6 +132,11 @@ public class Commands
                         _ => "osu"
                     });
                     userStats.PerfomancePoints += (int) score.PerfomancePoints;
+                    userStats.TotalScore += score.TotalScore;
+
+                    if (isRanked)
+                        userStats.RankedScore += score.TotalScore;
+           
 
                     Console.WriteLine(
                         $"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");

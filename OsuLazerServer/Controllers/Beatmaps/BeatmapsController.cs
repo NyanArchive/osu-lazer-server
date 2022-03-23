@@ -208,7 +208,7 @@ public class BeatmapsController : Controller
         }
 
         stats.TotalScore += score.TotalScore;
-        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
+        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked && score.Passed)
         {
             stats.RankedScore += score.TotalScore;
 
@@ -235,10 +235,11 @@ public class BeatmapsController : Controller
                 stats.Accuracy = (float)(_context.Scores.Where(s => s.Passed && s.UserId == user.Id).Select(a => a.Accuracy * 100)
                     .ToList().Average() / 100F);
             }
+            await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
         }
         
         
-        var unrankedMods = new []{"AT", "AA", "CN", "DA"};
+        var unrankedMods = new []{"AT", "AA", "CN", "DA", "RX"};
         
         if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
         {
@@ -251,6 +252,10 @@ public class BeatmapsController : Controller
         _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
         _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
         ModeUtils.StatsCache.Remove($"{ruleset.ShortName}:{user.Id}");
+        
+        await _storage.UpdateRankings(ruleset.ShortName);
+        
+
         return Json(new APIScore
         {
             Accuracy = score.Accuracy,

@@ -28,15 +28,21 @@ public class LeaderboardController : Controller
     public async Task<IActionResult> GetRankingPerfomance([FromRoute(Name = "mode")] string mode, [FromQuery(Name = "page")] int page)
     {
         if (!_storage.GlobalLeaderboardCache.TryGetValue($"{mode}:perfomance", out var cachedLeaderboard))
-        {
+        {//
             //Caclulating...
-            var leaderboard = _context.Users.AsEnumerable().OrderByDescending(d => (d.FetchStats(mode))?.PerfomancePoints??0).Skip((page - 1) * 50).ToList();
+            var leaderboard = (await _storage.GetLeaderboard(mode switch
+            {
+                "osu" => 0,
+                "taiko" => 1,
+                "fruits" => 2,
+                "mania" => 3
+            })).Select(c => _context.Users.FirstOrDefault(cc => c.Value.Id == cc.Id)).ToList();
             _storage.GlobalLeaderboardCache.Add($"{mode}:perfomance", leaderboard);
             
 
             return Json(new RankingResponse
             {
-                Rankings = (await Task.WhenAll(leaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Skip((page - 1) * 50).ToList().Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
@@ -69,7 +75,7 @@ public class LeaderboardController : Controller
         if (!_storage.GlobalLeaderboardCache.TryGetValue($"{mode}:score", out var cachedLeaderboard))
         {
             //Caclulating...
-            var leaderboard = _context.Users.AsEnumerable().OrderByDescending(d => (d.FetchStats(mode))?.TotalScore??0).Skip((page - 1) * 50).ToList();
+            var leaderboard = _context.Users.AsEnumerable().OrderByDescending(d => (d.FetchStats(mode))?.RankedScore??0).Skip((page - 1) * 50).ToList();
             _storage.GlobalLeaderboardCache.Add($"{mode}:score", leaderboard);
             
 
@@ -101,32 +107,41 @@ public class LeaderboardController : Controller
     
     [HttpGet("{mode}/country")]
     
-    public async Task<IActionResult> GetRankingsCountry([FromRoute(Name = "mode")] string mode, [FromQuery(Name = "page")] int page) 
+    public async Task<IActionResult> GetRankingsCountry([FromRoute(Name = "mode")] string mode, [FromQuery(Name = "page")] int page)
     {
 
+        var rulesetId = mode switch
+        {
+            "osu" => 0,
+            "taiko" => 1,
+            "fruits" => 2,
+            "mania" => 3
+        };
         if (!_storage.GlobalLeaderboardCache.TryGetValue($"{mode}:perfomance", out var cachedLeaderboard))
         {
             //Caclulating...
-            var leaderboard = _context.Users.AsEnumerable().OrderByDescending(d => (d.FetchStats(mode))?.PerfomancePoints??0).Skip((page - 1) * 50).ToList();
+            var leaderboard = (await _storage.GetLeaderboard(rulesetId)).Select(c => _context.Users.FirstOrDefault(cc => cc.Id == c.Value.Id)).Skip((page - 1) * 50).ToList();
             _storage.GlobalLeaderboardCache.Add($"{mode}:perfomance", leaderboard);
 
             var countries = new List<RankingCountry>();
 
             foreach (var u in leaderboard)
             {
+                
                 var ranking = new RankingCountry();
+                var stats = u.FetchStats(mode);
+                var pp = await _storage.GetUserPerfomancePoints(stats.Id, rulesetId);
                 if (!countries.Any(c => c.Country.FlagName == u.Country))
                 {
-                    var stats = u.FetchStats(mode);
                     ranking = new RankingCountry
                     {
                         Code = u.Country,
                         Country = new Country
                         {
                             FlagName = u.Country,
-                            FullName =  new CountryProvider().GetCountry(u.Country).CommonName
+                            FullName =  new CountryProvider()?.GetCountry(u.Country)?.CommonName??"Unknown"
                         },
-                        Performance = stats?.PerfomancePoints??0,
+                        Performance = (int)pp,
                         ActiveUsers = 1,
                         PlayCount = u.PlayCount,
                         RankedScore = (int) (stats?.RankedScore??0)
@@ -139,8 +154,8 @@ public class LeaderboardController : Controller
 
                 ranking = countries.FirstOrDefault(c => c.Code == u.Country);
 
-                ranking.Performance += userStats?.PerfomancePoints??0;
-                ranking.PlayCount += u?.PlayCount??0;
+                ranking.Performance += (int)pp;
+                ranking.PlayCount += u.PlayCount;
                 ranking.ActiveUsers++;
                 ranking.RankedScore += (int) (userStats?.RankedScore??0);
             }
@@ -158,19 +173,21 @@ public class LeaderboardController : Controller
 
         foreach (var u in cachedLeaderboard)
         {
+               
             var ranking = new RankingCountry();
+            var stats = u.FetchStats(mode);
+            var pp = await _storage.GetUserPerfomancePoints(stats.Id, rulesetId);
             if (!cachedCountries.Any(c => c.Country.FlagName == u.Country))
             {
-                var stats = u.FetchStats(mode);
                 ranking = new RankingCountry
                 {
                     Code = u.Country,
                     Country = new Country
                     {
                         FlagName = u.Country,
-                        FullName =  new CountryProvider().GetCountry(u.Country).CommonName
+                        FullName =  new CountryProvider()?.GetCountry(u.Country)?.CommonName??"Unknown"
                     },
-                    Performance = stats?.PerfomancePoints??0,
+                    Performance = (int)pp,
                     ActiveUsers = 1,
                     PlayCount = u.PlayCount,
                     RankedScore = (int) (stats?.RankedScore??0)
@@ -180,15 +197,13 @@ public class LeaderboardController : Controller
                 continue;
             }
             var userStats = u.FetchStats(mode);
-            
-            if (userStats is null)
-                continue;
-            ranking = cachedCountries.First(c => c.Code == u.Country);
 
-            ranking.Performance += userStats.PerfomancePoints;
+            ranking = cachedCountries.FirstOrDefault(c => c.Code == u.Country);
+
+            ranking.Performance += (int)pp;
             ranking.PlayCount += u.PlayCount;
             ranking.ActiveUsers++;
-            ranking.RankedScore += (int) userStats.RankedScore;
+            ranking.RankedScore += (int) (userStats?.RankedScore??0);
         }
         return Json(new RankingCountryResponse
         {

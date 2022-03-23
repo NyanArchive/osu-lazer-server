@@ -203,29 +203,30 @@ public class UserStorage : IUserStorage, IServiceScope
         });
     }
     
-    public async Task<int> GetUserRank(int userId, int RuleSetId, bool forceFetch = false)
+    public async Task<int> GetUserRank(int userId, int ruleSetId, bool forceFetch = false)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;
 
         var rank = 0;
         if (!forceFetch)
         {
-            var cachedRank = await GetCachedInt($"leaderboard:{RuleSetId}:{userId}:rank");
-
+            var cachedRank = await GetCachedInt($"leaderboard:{ruleSetId}:{userId}:rank");
             if (cachedRank is not null)
             {
-                return rank;
+                return cachedRank.Value;
             }
         }
 
         var context = new LazerContext();
 
-        Dictionary<int, IUserStats> stats = await GetLeaderboard(RuleSetId);
+        Dictionary<int, IUserStats> stats = await GetLeaderboard(ruleSetId);
 
 
         foreach (var kvp in stats)
         {
-            await cache.SetAsync($"leaderboard:{RuleSetId}:{userId}:rank", BitConverter.GetBytes(kvp.Key));
+            if (await GetUserPerfomancePoints(kvp.Value.Id, ruleSetId) == 0)
+                continue;
+            await cache.SetAsync($"leaderboard:{ruleSetId}:{userId}:rank", BitConverter.GetBytes(kvp.Key));
         }
         
         return stats.FirstOrDefault(c => c.Value.Id == userId).Key;
@@ -238,7 +239,7 @@ public class UserStorage : IUserStorage, IServiceScope
         if (!forceFetch)
         {
             var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:perfomance");
-
+            
             if (cachedRank is not null)
             {
                 return BitConverter.ToDouble(cachedRank);
@@ -247,7 +248,7 @@ public class UserStorage : IUserStorage, IServiceScope
 
         var context = new LazerContext();
 
-        var userScores = context.Scores.Where(c => c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST && !c.Mods.Contains("RX"));
+        var userScores = context.Scores.Where(c => c.RuleSetId == mode && c.UserId == userId && c.Passed && c.Status == DbScoreStatus.BEST && !c.Mods.Contains("RX"));
 
         double performance = 0;
 
@@ -293,16 +294,71 @@ public class UserStorage : IUserStorage, IServiceScope
         return accuracy * 100;
     }
 
+    public async Task<double> UpdateRankings(string mode)
+    {
+        
+        Console.WriteLine("Calculating new rankings...");
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var context = new LazerContext();
+
+        var rulesetId = mode switch
+        {
+            "osu" => 0,
+            "taiko" => 1,
+            "fruits" => 2,
+            "mania" => 3,
+            _ => 0
+        };
+        var leaderboard = await GetLeaderboard(rulesetId);
+        for (var position = 0; position < leaderboard.Count; position++)
+        {
+            var user = context.Users.FirstOrDefault(c => c.Id == leaderboard.ToList()[position].Value.Id);
+            var stats = user.FetchStats(mode);
+            var perfomance = await GetUserPerfomancePoints(user.Id, rulesetId);
+
+            var rank = await GetUserRank(user.Id, rulesetId);
+
+            if (rank != leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key)
+            {
+                await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key - 1));
+                Console.WriteLine($"RANK - {user.Id}({perfomance}pp) UPDATED: {rank} -> {leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key - 1}");
+            }
+        }
+        
+        GlobalLeaderboardCache.Clear();
+        
+        Console.WriteLine("Calculating done.");
+        return 0;
+    }
+
+    public async Task<double> UpdatePerformance(string mode, int userId, double peromance)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+
+        var currentPerfomance = await GetUserPerfomancePoints(userId, mode switch
+        {
+            "osu" => 0,
+            "taiko" => 1,
+            "fruits" => 2,
+            "mania" => 3,
+            _ => 0
+        }) + peromance;
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(currentPerfomance));
+
+        return currentPerfomance;
+    }
+
 
     public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
     {
-
+        var leaderboardUtils = new LeaderboardUtils(this);
         return ruleset switch
         {
-            0 => await LeaderboardUtils.GetLeaderboardForOsu(),
-            1 => await LeaderboardUtils.GetLeaderboardForTaiko(),
-            2 => await LeaderboardUtils.GetLeaderboardForFruits(),
-            3 => await LeaderboardUtils.GetLeaderboardForMania()
+            0 => await leaderboardUtils.GetLeaderboardForOsu(),
+            1 => await leaderboardUtils.GetLeaderboardForTaiko(),
+            2 => await leaderboardUtils.GetLeaderboardForFruits(),
+            3 => await leaderboardUtils.GetLeaderboardForMania()
         };
     }
     

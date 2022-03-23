@@ -73,7 +73,8 @@ public class UsersController : Controller
         var scores = _context.Scores.Where(c => c.UserId == id && c.Status == DbScoreStatus.BEST)
             .OrderByDescending(c => c.PerfomancePoints).Skip(offset).Take(limit);
 
-        return Json(scores.Select(c => c.ToOsuScore(_resolver).GetAwaiter().GetResult()));
+        var resolvedScores = (await Task.WhenAll(scores.AsEnumerable().Select(async score => await score.ToOsuScore(_resolver)))).ToList();
+        return Json(resolvedScores);
     }
 
     private async Task<IActionResult> GenerateRegistrationError(RegistrationRequestErrors.UserErrors errors)

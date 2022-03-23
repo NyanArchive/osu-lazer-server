@@ -309,12 +309,12 @@ namespace OsuLazerServer.Services.Beatmaps;
             Genre = new BeatmapSetOnlineGenre
             {
                 Id = Genre.Id ?? 1,
-                Name = Genre.Name
+                Name = Genre?.Name??""
             },
             Language = new BeatmapSetOnlineLanguage
             {
                 Id = Language.Id ?? 1,
-                Name = Language.Name
+                Name = Language?.Name??""
             },
             Preview = PreviewUrl,
             Ranked = RankedDate,
