@@ -143,7 +143,7 @@ public class ChannelsController : Controller
                     Sender = UserStorage.SystemSender,
                     Timetamp = DateTime.Now,
                     ChannelId = channel.ChannelId,
-                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
                     SenderId = UserStorage.SystemSender.Id
                 });
             }
@@ -158,7 +158,7 @@ public class ChannelsController : Controller
                     Sender = UserStorage.SystemSender,
                     Timetamp = DateTime.Now,
                     ChannelId =  channel.ChannelId,
-                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                    MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
                     SenderId = UserStorage.SystemSender.Id
                 }); 
             }
@@ -168,7 +168,7 @@ public class ChannelsController : Controller
                 Sender = UserStorage.SystemSender,
                 Timetamp = DateTime.Now,
                 ChannelId = channel.ChannelId,
-                MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + 1,
+                MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
                 SenderId = UserStorage.SystemSender.Id
             });
         }

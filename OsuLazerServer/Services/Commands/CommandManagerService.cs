@@ -3,10 +3,20 @@ using OsuLazerServer.Attributes;
 
 namespace OsuLazerServer.Services.Commands;
 
-public class CommandManagerService : ICommandManager
+public class CommandManagerService : ICommandManager, IServiceScope
 {
-
     private Dictionary<string, CommandItem> CommandCache { get; set; } = new();
+    
+    public IServiceProvider ServiceProvider { get; }
+    private IServiceScope Scope { get; set; }
+    private  Commands Commands { get; set; }
+    public CommandManagerService(IServiceProvider provider)
+    {
+        ServiceProvider = provider;
+        Scope = provider.CreateScope();
+        Commands = new Commands(ServiceProvider);
+
+    }
     public CommandItem? GetCommandByName(string command)
     {
         var spaceIndex = command.IndexOf(' ');
@@ -27,7 +37,7 @@ public class CommandManagerService : ICommandManager
                 AdminRequired = attr.AdminRequired,
                 Action = new Func<List<string>, string>((list) =>
                 {
-                    return method.Invoke(null, new[] {list}).ToString();
+                    return method.Invoke(Commands, list.ToArray()).ToString();
                 }),
                 Description = attr.Description,
                 Name = attr.Command
@@ -39,4 +49,10 @@ public class CommandManagerService : ICommandManager
         return cmd;
 
     }
+
+    public void Dispose()
+    {
+        Scope.Dispose();
+    }
+
 }

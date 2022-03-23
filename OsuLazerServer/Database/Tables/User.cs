@@ -61,6 +61,14 @@ public class User
         StatsMania = await ctx.ManiaStats.FirstAsync(s => s.Id == Id);
         StatsFruits = await ctx.FruitsStats.FirstAsync(s => s.Id == Id);
     }
+    
+    public async Task FetchUserStatsWithContext(LazerContext ctx)
+    {
+        StatsOsu = await ctx.OsuStats.FirstAsync(s => s.Id == Id);
+        StatsTaiko = await ctx.TaikoStats.FirstAsync(s => s.Id == Id);
+        StatsMania = await ctx.ManiaStats.FirstAsync(s => s.Id == Id);
+        StatsFruits = await ctx.FruitsStats.FirstAsync(s => s.Id == Id);
+    }
 
     public IUserStats? FetchStats(string mode) => ModeUtils.FetchUserStats(new LazerContext(), mode, Id);
 
