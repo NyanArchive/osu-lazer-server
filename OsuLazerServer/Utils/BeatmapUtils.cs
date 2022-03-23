@@ -21,6 +21,8 @@ namespace OsuLazerServer.Utils;
  */
 public class BeatmapUtils
 {
+
+    public static Dictionary<int, Stream> BeatmapStreamCache { get; set; } = new();
     public static BeatmapOnlineStatus Status(string status)
     {
         var result = BeatmapOnlineStatus.None;
@@ -54,9 +56,13 @@ public class BeatmapUtils
 
     public static async Task<Stream> GetBeatmapStream(int beatmapId)
     {
+        /*if (BeatmapStreamCache.TryGetValue(beatmapId, out var stream))
+            return stream;*/
         var response = await (await new HttpClient().GetAsync($"https://osu.ppy.sh/osu/{beatmapId}")).Content.ReadAsStreamAsync();
         response.Seek(0, SeekOrigin.Begin);
-
+        
+        /*
+        BeatmapStreamCache.Add(beatmapId, response);*/
         return response;
     }
 

@@ -335,6 +335,10 @@ public class UserStorage : IUserStorage, IServiceScope
     public async Task<double> UpdatePerformance(string mode, int userId, double peromance)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;
+        var context = new LazerContext();
+        var user = context.Users.FirstOrDefault(c => c.Id == userId);
+
+        var stats = user.FetchStats(mode);
 
         var currentPerfomance = await GetUserPerfomancePoints(userId, mode switch
         {
@@ -345,7 +349,8 @@ public class UserStorage : IUserStorage, IServiceScope
             _ => 0
         }) + peromance;
         await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(currentPerfomance));
-
+        stats.PerfomancePoints = (int)peromance;
+        
         return currentPerfomance;
     }
 

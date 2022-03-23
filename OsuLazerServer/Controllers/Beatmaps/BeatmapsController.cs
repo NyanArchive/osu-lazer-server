@@ -212,7 +212,7 @@ public class BeatmapsController : Controller
         {
             stats.RankedScore += score.TotalScore;
 
-            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints);
+            await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
         }
         else
         {
@@ -235,7 +235,7 @@ public class BeatmapsController : Controller
                 stats.Accuracy = (float)(_context.Scores.Where(s => s.Passed && s.UserId == user.Id).Select(a => a.Accuracy * 100)
                     .ToList().Average() / 100F);
             }
-            await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
+ 
         }
         
         
@@ -253,7 +253,6 @@ public class BeatmapsController : Controller
         _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
         ModeUtils.StatsCache.Remove($"{ruleset.ShortName}:{user.Id}");
         
-        await _storage.UpdateRankings(ruleset.ShortName);
         
 
         return Json(new APIScore

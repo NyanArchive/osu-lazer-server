@@ -54,7 +54,7 @@ public class Commands
             
             Console.WriteLine("Recalculating scores...");
             var scores = ctx.Scores;
-            foreach (var score in scores.Where(c => c.Status == DbScoreStatus.BEST && c.Passed))
+            foreach (var score in scores.Where(c => c.Passed))
             {
 
                 try
@@ -77,10 +77,7 @@ public class Commands
 
                     await user.FetchUserStats();
 
-                    if (score.Mods.Contains("RX"))
-                    {
-                        continue;
-                    }
+        
 
                     var ruleset = (RulesetId) score.RuleSetId switch
                     {
@@ -123,6 +120,8 @@ public class Commands
 
 
                     score.PerfomancePoints = perfomance;
+                    
+                    
                     var userStats = user.GetStats(score.RuleSetId switch
                     {
                         0 => "osu",
@@ -131,21 +130,37 @@ public class Commands
                         3 => "mania",
                         _ => "osu"
                     });
-                    userStats.PerfomancePoints += (int) score.PerfomancePoints;
-                    userStats.TotalScore += score.TotalScore;
+                    
+                    var unrankedMods = new []{"AT", "AA", "CN", "DA", "RX"};
+                    
+                    
+                    if (score.Mods.Any(mod => unrankedMods.Contains(mod)))
+                    {
+                        score.Status = DbScoreStatus.OUTDATED;
+                        score.PerfomancePoints = 0;
+                        Console.WriteLine($"Score {score.Id} by {score.UserId} using unranked mods ({String.Join("", score.Mods)}), Unranking this score.");
+                    }
+                    
+                    
+                    if (score.Status == DbScoreStatus.BEST)
+                    {
+                        userStats.TotalScore = score.TotalScore;
+                    }
 
-                    if (isRanked)
+                    if (isRanked && score.Status == DbScoreStatus.BEST)
+                    {
+                        userStats.PerfomancePoints += (int) score.PerfomancePoints;
                         userStats.RankedScore += score.TotalScore;
-           
+                    }
 
-                    Console.WriteLine(
-                        $"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");
+
+                    Console.WriteLine($"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");
 
                     await currentContext.SaveChangesAsync();
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Cannot recalculate score {score.Id}: {e}");
+                    Console.WriteLine($"Cannot recalculate score {score.Id}");
                 }
                
             }
