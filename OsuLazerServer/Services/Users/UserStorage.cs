@@ -321,14 +321,12 @@ public class UserStorage : IUserStorage, IServiceScope
 
             if (rank != leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key)
             {
-                await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key - 1));
-                Console.WriteLine($"RANK - {user.Id}({perfomance}pp) UPDATED: {rank} -> {leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key - 1}");
+                await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key));
             }
         }
         
         GlobalLeaderboardCache.Clear();
         
-        Console.WriteLine("Calculating done.");
         return 0;
     }
 

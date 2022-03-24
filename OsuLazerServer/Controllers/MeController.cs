@@ -36,7 +36,7 @@ public class MeController : Controller
 
         await user.FetchUserStats();
 
-        return Json(user.ToOsuUser("osu"));
+        return Json(await user.ToOsuUser("osu", _storage));
     }
 
     [RequiredLazerClient]

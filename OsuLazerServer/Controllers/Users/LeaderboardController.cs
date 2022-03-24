@@ -42,7 +42,7 @@ public class LeaderboardController : Controller
 
             return Json(new RankingResponse
             {
-                Rankings = (await Task.WhenAll(leaderboard.Skip((page - 1) * 50).ToList().Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Skip((page - 1) * 50).ToList().Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
@@ -55,7 +55,7 @@ public class LeaderboardController : Controller
 
         return Json(new RankingResponse
         {
-            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
             {
                 "osu" => 0,
                 "taiko" => 1,
@@ -81,7 +81,7 @@ public class LeaderboardController : Controller
 
             return Json(new RankingResponse
             {
-                Rankings = (await Task.WhenAll(leaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
@@ -94,7 +94,7 @@ public class LeaderboardController : Controller
 
         return Json(new RankingResponse
         {
-            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(u.ToOsuUser(mode).Statistics, u.ToOsuUser(mode), _storage, mode switch
+            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
             {
                 "osu" => 0,
                 "taiko" => 1,

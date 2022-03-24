@@ -9,6 +9,7 @@ using osu.Game.Scoring;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables.Scores;
+using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 using HitResult = osu.Game.Rulesets.Scoring.HitResult;
 using ServerStats = OsuLazerServer.Database.Tables.Scores.HitResultStats;
@@ -31,25 +32,34 @@ public class Commands
             Console.WriteLine("=====================");
             Console.WriteLine("Recalculation started.");
             
-            Console.WriteLine("Reset Perfomance.");
+            Console.WriteLine("Reset Performance.");
 
+            var storage = Provider.GetService<IUserStorage>();
             var ctx = new LazerContext();
             
             foreach (var user in ctx.OsuStats)
             {
                 user.PerfomancePoints = 0;
+                user.TotalScore = 0;
+                user.RankedScore = 0;
             }
             foreach (var user in ctx.TaikoStats)
             {
                 user.PerfomancePoints = 0;
+                user.TotalScore = 0;
+                user.RankedScore = 0;
             }
             foreach (var user in ctx.FruitsStats)
             {
                 user.PerfomancePoints = 0;
+                user.TotalScore = 0;
+                user.RankedScore = 0;
             }
             foreach (var user in ctx.TaikoStats)
             {
                 user.PerfomancePoints = 0;
+                user.TotalScore = 0;
+                user.RankedScore = 0;
             }
             
             Console.WriteLine("Recalculating scores...");
@@ -155,17 +165,23 @@ public class Commands
 
 
                     Console.WriteLine($"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");
-
+                    
                     await currentContext.SaveChangesAsync();
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Cannot recalculate score {score.Id}");
+                    Console.WriteLine($"Cannot recalculate score {score.Id}: {e.Message}");
                 }
                
             }
             
+            
             //saving scores.
+            Console.WriteLine("=> Recalculating leaderboards");
+            await storage.UpdateRankings("osu");
+            await storage.UpdateRankings("taiko");
+            await storage.UpdateRankings("fruits");
+            await storage.UpdateRankings("mania");
 
             Console.WriteLine("Scores has recalculated.");
             await ctx.SaveChangesAsync();

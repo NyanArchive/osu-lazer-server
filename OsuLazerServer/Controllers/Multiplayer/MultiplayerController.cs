@@ -125,7 +125,7 @@ public class MultiplayerController : Controller
         if (!_storage.Rooms.TryGetValue(roomId, out var room))
             return NotFound();
         
-        room.RecentParticipants.Add(user?.ToOsuUser("osu", _storage));
+        room.RecentParticipants.Add(await user?.ToOsuUser("osu", _storage));
         return Ok();
     }
     [HttpDelete("{roomId:int}/users/{userId}")]

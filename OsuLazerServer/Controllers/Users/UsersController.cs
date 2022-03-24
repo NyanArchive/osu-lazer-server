@@ -58,7 +58,7 @@ public class UsersController : Controller
         if (user is null)
             return NotFound();
 
-        var osuUser = user.ToOsuUser(mode);
+        var osuUser = await user.ToOsuUser(mode);
 
         if (_storage.Users.Values.Any(c => c.Id == user.Id))
             osuUser.IsOnline = true;
@@ -152,14 +152,14 @@ public class UsersController : Controller
             .Select(val => Convert.ToInt32(val));
 
 
-        return Json(new {users = ids.Select(id => toSpectatorUser(id))});
+        return Json(new {users = await Task.WhenAll(ids.Select(async id => await toSpectatorUser(id)))});
     }
 
-    private APIUser toSpectatorUser(int id)
+    private async Task<APIUser> toSpectatorUser(int id)
     {
         var user = _context.Users.FirstOrDefault(d => d.Id == id);
 
 
-        return user?.ToOsuUser("osu", _storage);
+        return await user?.ToOsuUser("osu", _storage);
     }
 }

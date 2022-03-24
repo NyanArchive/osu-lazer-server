@@ -90,7 +90,7 @@ public class User
     }
 
 
-    public APIUser ToOsuUser(string mode, IUserStorage? storage = null)
+    public async Task<APIUser> ToOsuUser(string mode, IUserStorage? storage = null)
     {
         var context = new LazerContext();
         var stats = ModeUtils.FetchUserStats(context, mode, Id);
@@ -129,13 +129,13 @@ public class User
                 TotalHits = (int) (stats?.TotalHits ?? 0),
                 TotalScore = stats?.TotalScore??0,
                 CountryRank = 1,
-                GlobalRank = storage is not null ? storage.GetUserRank(Id, mode switch
+                GlobalRank = storage is not null ? await storage.GetUserRank(Id, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
                     "fruits" => 2,
                     "mania" => 3
-                }, false).GetAwaiter().GetResult() : 0,
+                }) + 1: 0,
                 GradeCounts = new GradeCounts
                 {
                     A = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id),

@@ -47,7 +47,8 @@ public class RequiredLazerClient : ActionFilterAttribute
             await context.HttpContext.Response.WriteAsJsonAsync(new {authentication = "basic"});
             await context.HttpContext.Response.CompleteAsync();
             return;
-        }
+        } 
+        
         await next();
     }
 }
