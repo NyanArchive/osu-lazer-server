@@ -130,7 +130,7 @@ public class LeaderboardController : Controller
                 
                 var ranking = new RankingCountry();
                 var stats = u.FetchStats(mode);
-                var pp = await _storage.GetUserPerfomancePoints(stats.Id, rulesetId);
+                var pp = await _storage.GetUserPerformancePoints(stats.Id, rulesetId);
                 if (!countries.Any(c => c.Country.FlagName == u.Country))
                 {
                     ranking = new RankingCountry
@@ -176,7 +176,7 @@ public class LeaderboardController : Controller
                
             var ranking = new RankingCountry();
             var stats = u.FetchStats(mode);
-            var pp = await _storage.GetUserPerfomancePoints(stats.Id, rulesetId);
+            var pp = await _storage.GetUserPerformancePoints(stats.Id, rulesetId);
             if (!cachedCountries.Any(c => c.Country.FlagName == u.Country))
             {
                 ranking = new RankingCountry

@@ -224,7 +224,7 @@ public class UserStorage : IUserStorage, IServiceScope
 
         foreach (var kvp in stats)
         {
-            if (await GetUserPerfomancePoints(kvp.Value.Id, ruleSetId) == 0)
+            if (await GetUserPerformancePoints(kvp.Value.Id, ruleSetId) == 0)
                 continue;
             await cache.SetAsync($"leaderboard:{ruleSetId}:{userId}:rank", BitConverter.GetBytes(kvp.Key));
         }
@@ -232,13 +232,13 @@ public class UserStorage : IUserStorage, IServiceScope
         return stats.FirstOrDefault(c => c.Value.Id == userId).Key;
     }
 
-    public async Task<double> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false)
+    public async Task<double> GetUserPerformancePoints(int userId, int mode, bool forceFetch = false)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;
 
         if (!forceFetch)
         {
-            var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:perfomance");
+            var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:performance");
             
             if (cachedRank is not null)
             {
@@ -261,7 +261,7 @@ public class UserStorage : IUserStorage, IServiceScope
             performance += score.PerfomancePoints;
         }
 
-        await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(performance));
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:performance", BitConverter.GetBytes(performance));
         return performance;
     }
 
@@ -272,11 +272,12 @@ public class UserStorage : IUserStorage, IServiceScope
         var rank = 0;
         if (!forceFetch)
         {
+          
             var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:hitaccuracy");
 
             if (cachedRank is not null)
             {
-                return BitConverter.ToDouble(cachedRank) * 100;
+                return BitConverter.ToDouble(cachedRank);
             }
         }
         
@@ -288,10 +289,9 @@ public class UserStorage : IUserStorage, IServiceScope
         if (await userScores.CountAsync() == 0)
             return 0.0;
         var accuracy = userScores.Select(c => c.Accuracy).ToList().Average();
-        
 
         await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(accuracy));
-        return accuracy * 100;
+        return accuracy;
     }
 
     public async Task<double> UpdateRankings(string mode)
@@ -315,7 +315,7 @@ public class UserStorage : IUserStorage, IServiceScope
         {
             var user = context.Users.FirstOrDefault(c => c.Id == leaderboard.ToList()[position].Value.Id);
             var stats = user.FetchStats(mode);
-            var perfomance = await GetUserPerfomancePoints(user.Id, rulesetId);
+            var perfomance = await GetUserPerformancePoints(user.Id, rulesetId);
 
             var rank = await GetUserRank(user.Id, rulesetId);
 
@@ -338,7 +338,7 @@ public class UserStorage : IUserStorage, IServiceScope
 
         var stats = user.FetchStats(mode);
 
-        var currentPerfomance = await GetUserPerfomancePoints(userId, mode switch
+        var currentAccuracy = await GetUserPerformancePoints(userId, mode switch
         {
             "osu" => 0,
             "taiko" => 1,
@@ -346,10 +346,32 @@ public class UserStorage : IUserStorage, IServiceScope
             "mania" => 3,
             _ => 0
         }) + peromance;
-        await cache.SetAsync($"leaderboard:{mode}:{userId}:perfomance", BitConverter.GetBytes(currentPerfomance));
-        stats.PerfomancePoints = (int)peromance;
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(currentAccuracy));
+        stats.PerformancePoints = (int)peromance;
         
-        return currentPerfomance;
+        return currentAccuracy;
+    }
+    
+    public async Task<double> UpdateHitAccuracy(string mode, int userId, double accuracy)
+    {
+        var cache = ServiceProvider.GetService<IDistributedCache>()!;
+        var context = new LazerContext();
+        var user = context.Users.FirstOrDefault(c => c.Id == userId);
+
+        var stats = user.FetchStats(mode);
+
+        var currentAccuracy = (await GetUserHitAccuracy(userId, mode switch
+        {
+            "osu" => 0,
+            "taiko" => 1,
+            "fruits" => 2,
+            "mania" => 3,
+            _ => 0
+        }) + accuracy) / 2;
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(currentAccuracy));
+        stats.Accuracy = (float)currentAccuracy;
+        
+        return currentAccuracy;
     }
 
 

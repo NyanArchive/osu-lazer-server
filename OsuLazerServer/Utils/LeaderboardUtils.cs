@@ -22,13 +22,13 @@ public class LeaderboardUtils
         var response = new Dictionary<int, IUserStats>();
         var users = await Task.WhenAll(context.OsuStats.ToList().Select(async c =>
         {
-            c.PerfomancePoints = (int) await _stats.GetUserPerfomancePoints(c.Id, 0);
+            c.PerformancePoints = (int) await _stats.GetUserPerformancePoints(c.Id, 0);
             return c;
         }));
-        foreach (var stats in users.OrderByDescending(c =>c.PerfomancePoints).Select((c, i) => new { Position = i, Stats = c}))
+        foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
             
-            if (stats.Stats.PerfomancePoints == 0)
+            if (stats.Stats.PerformancePoints == 0)
                 continue;
             
             response[stats.Position] = stats.Stats;
@@ -45,13 +45,13 @@ public class LeaderboardUtils
         var response = new Dictionary<int, IUserStats>();
         var users = await Task.WhenAll(context.OsuStats.ToList().Select(async c =>
         {
-            c.PerfomancePoints = (int) await _stats.GetUserPerfomancePoints(c.Id, 1);
+            c.PerformancePoints = (int) await _stats.GetUserPerformancePoints(c.Id, 1);
             return c;
         }));
-        foreach (var stats in users.OrderByDescending(c =>c.PerfomancePoints).Select((c, i) => new { Position = i, Stats = c}))
+        foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
             
-            if (stats.Stats.PerfomancePoints == 0)
+            if (stats.Stats.PerformancePoints == 0)
                 continue;
             
             response[stats.Position] = stats.Stats;
@@ -67,13 +67,13 @@ public class LeaderboardUtils
         var response = new Dictionary<int, IUserStats>();
         var users = await Task.WhenAll(context.OsuStats.ToList().Select(async c =>
         {
-            c.PerfomancePoints = (int) await _stats.GetUserPerfomancePoints(c.Id, 2);
+            c.PerformancePoints = (int) await _stats.GetUserPerformancePoints(c.Id, 2);
             return c;
         }));
-        foreach (var stats in users.OrderByDescending(c =>c.PerfomancePoints).Select((c, i) => new { Position = i, Stats = c}))
+        foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
             
-            if (stats.Stats.PerfomancePoints == 0)
+            if (stats.Stats.PerformancePoints == 0)
                 continue;
             
             response[stats.Position] = stats.Stats;
@@ -89,13 +89,13 @@ public class LeaderboardUtils
         var response = new Dictionary<int, IUserStats>();
         var users = await Task.WhenAll(context.OsuStats.ToList().Select(async c =>
         {
-            c.PerfomancePoints = (int) await _stats.GetUserPerfomancePoints(c.Id, 3);
+            c.PerformancePoints = (int) await _stats.GetUserPerformancePoints(c.Id, 3);
             return c;
         }));
-        foreach (var stats in users.OrderByDescending(c =>c.PerfomancePoints).Select((c, i) => new { Position = i, Stats = c}))
+        foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
             
-            if (stats.Stats.PerfomancePoints == 0)
+            if (stats.Stats.PerformancePoints == 0)
                 continue;
             
             response[stats.Position] = stats.Stats;

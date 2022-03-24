@@ -91,7 +91,7 @@ public class ModeUtils
         var context = new LazerContext();
 
         var leaderboard = context.Users.AsEnumerable()
-            .OrderByDescending(d => (d.FetchStats(mode))?.PerfomancePoints ?? 0).Select((e, i) => new {index = i + 1, entry = e});
+            .OrderByDescending(d => (d.FetchStats(mode))?.PerformancePoints ?? 0).Select((e, i) => new {index = i + 1, entry = e});
 
         var cachedRank = leaderboard.FirstOrDefault(u => u.entry.Id == user)?.index??0;
 
@@ -99,4 +99,13 @@ public class ModeUtils
 
         return cachedRank;
     }
+
+    public static int RuleSetId(string mode) => mode switch
+    {
+        "osu" => 0,
+        "taiko" => 1,
+        "fruits" => 2,
+        "mania" => 3,
+        _ => 0
+    };
 }

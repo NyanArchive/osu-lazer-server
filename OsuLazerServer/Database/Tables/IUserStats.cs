@@ -13,7 +13,7 @@ public interface IUserStats
     [Required]
     public int Id { get; set; }
     
-    [Column("perfomance_points")] public int PerfomancePoints { get; set; }
+    [Column("performance_points")] public int PerformancePoints { get; set; }
     [Column("level")] public int Level { get; set; }
     [Column("level_progress")] public int LevelProgress { get; set; }
     [Column("total_scope")] public long TotalScore { get; set; }
@@ -44,7 +44,7 @@ public interface IUserStats
             Ss = 0,
             Ssh = 0
         },
-        PerfomancePoints = PerfomancePoints,
+        PerfomancePoints = PerformancePoints,
         RankedScore = RankedScore,
         TotalHits = (int) TotalHits,
         TotalScore = TotalScore,

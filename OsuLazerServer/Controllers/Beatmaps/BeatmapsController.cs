@@ -216,7 +216,7 @@ public class BeatmapsController : Controller
         }
         else
         {
-            stats.PerfomancePoints = 0;
+            stats.PerformancePoints = 0;
         }
 
 
@@ -393,11 +393,12 @@ public class BeatmapsController : Controller
         {
             stats.RankedScore += score.TotalScore;
 
-            stats.PerfomancePoints += (int) Math.Floor(score.PerfomancePoints);
+            stats.PerformancePoints += (int) Math.Floor(score.PerfomancePoints);
+            await _storage.UpdateHitAccuracy(ruleset.ShortName, user.Id, score.Accuracy);
         }
         else
         {
-            stats.PerfomancePoints = 0;
+            stats.PerformancePoints = 0;
         }
 
 

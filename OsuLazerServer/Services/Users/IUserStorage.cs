@@ -34,9 +34,10 @@ public interface IUserStorage
 
     public Task<int> GetUserRank(int userId, int mode, bool forceFetch = false);
 
-    public Task<double> GetUserPerfomancePoints(int userId, int mode, bool forceFetch = false);
+    public Task<double> GetUserPerformancePoints(int userId, int mode, bool forceFetch = false);
     public Task<double> GetUserHitAccuracy(int userId, int mode, bool forceFetch = false);
     public Task<double> UpdateRankings(string mode);
     public Task<double> UpdatePerformance(string mode, int userId, double peromance);
     public Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset);
+    public Task<double> UpdateHitAccuracy(string mode, int userId, double accuracy);
 }

@@ -39,25 +39,25 @@ public class Commands
             
             foreach (var user in ctx.OsuStats)
             {
-                user.PerfomancePoints = 0;
+                user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
             foreach (var user in ctx.TaikoStats)
             {
-                user.PerfomancePoints = 0;
+                user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
             foreach (var user in ctx.FruitsStats)
             {
-                user.PerfomancePoints = 0;
+                user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
             foreach (var user in ctx.TaikoStats)
             {
-                user.PerfomancePoints = 0;
+                user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
@@ -159,7 +159,7 @@ public class Commands
 
                     if (isRanked && score.Status == DbScoreStatus.BEST)
                     {
-                        userStats.PerfomancePoints += (int) score.PerfomancePoints;
+                        userStats.PerformancePoints += (int) score.PerfomancePoints;
                         userStats.RankedScore += score.TotalScore;
                     }
 
@@ -187,5 +187,19 @@ public class Commands
             await ctx.SaveChangesAsync();
         });
         return $"Recalculation has been started.";
+    }
+
+    [Command("reset", "Reset user's country.", 1, true)]
+    public string ResetUserCountry(string username)
+    {
+        var context = new LazerContext();
+
+        var user = context.Users.FirstOrDefault(c => c.UsernameSafe == username.ToLower().Replace(' ', '_'));
+
+        if (user is null)
+            return "User not found";
+
+
+        return "OK";
     }
 }

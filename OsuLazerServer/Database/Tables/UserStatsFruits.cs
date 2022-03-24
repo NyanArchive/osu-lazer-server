@@ -8,7 +8,7 @@ namespace OsuLazerServer.Database.Tables;
 public class UsersStatsFruits : IUserStats
 {
     public int Id { get; set; }
-    public int PerfomancePoints { get; set; }
+    public int PerformancePoints { get; set; }
     public int Level { get; set; }
     public int LevelProgress { get; set; }
     public long TotalScore { get; set; }

@@ -87,7 +87,7 @@ public class TokensController : Controller
         }
 
 
-        if (user.Country != (await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString())))
+        /*if (user.Country != (await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString())))
         {
             Response.StatusCode = 401;
             return Json(new OAuthError
@@ -96,7 +96,7 @@ public class TokensController : Controller
                 Message = "Please, contact support (001)",
                 ErrorIdentifier = "-1"
             });
-        }
+        }*/
 #endif
 
         var token = _tokensService.GenerateToken();
