@@ -127,7 +127,8 @@ public class TokensController : Controller
             await _storage.AddUpdate(user.Id, new Update
             {
                 Channels = new List<Channel>() { channel },
-                Messages = channel.Messages
+                Messages = channel.Messages,
+                UpdateRecievedAt = DateTimeOffset.Now
             });
             await _storage.ForceJoinChannel(user.Id, 1); //Join #osu channel.
         });

@@ -135,7 +135,7 @@ public class User
                     "taiko" => 1,
                     "fruits" => 2,
                     "mania" => 3
-                }) + 1: 0,
+                }) : -1,
                 GradeCounts = new GradeCounts
                 {
                     A = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.A && s.UserId == Id && s.RuleSetId == ModeUtils.RuleSetId(mode)),
@@ -145,7 +145,7 @@ public class User
                     Ssh = context.Scores.Count(s => s.Passed && s.Rank == ScoreRank.XH && s.UserId == Id && s.RuleSetId == ModeUtils.RuleSetId(mode)),
                 },
                 RankedScore = stats?.RankedScore??0,
-                PerfomancePoints = stats?.PerformancePoints??0,
+                PerfomancePoints = storage is not null ? await storage.GetUserPerformancePoints(Id, ModeUtils.RuleSetId(mode)) : 1,
                 ReplaysWatchedByOthers = ReplaysWatches,
                 HitAccuracy = storage is not null ? await storage.GetUserHitAccuracy(Id, ModeUtils.RuleSetId(mode)) * 100: 0,
                 IsRanked = true,

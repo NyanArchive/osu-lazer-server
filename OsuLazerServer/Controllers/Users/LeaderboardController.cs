@@ -36,13 +36,13 @@ public class LeaderboardController : Controller
                 "taiko" => 1,
                 "fruits" => 2,
                 "mania" => 3
-            })).Select(c => _context.Users.FirstOrDefault(cc => c.Value.Id == cc.Id)).ToList();
+            })).Select(c => _context.Users.FirstOrDefault(cc => c.Value.Id == cc.Id && !cc.Banned)).ToList();
             _storage.GlobalLeaderboardCache.Add($"{mode}:perfomance", leaderboard);
             
 
             return Json(new RankingResponse
             {
-                Rankings = (await Task.WhenAll(leaderboard.Skip((page - 1) * 50).ToList().Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
+                Rankings = (await Task.WhenAll(leaderboard.Skip((page - 1) * 50).ToList().Where(c => c is not null).Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
                 {
                     "osu" => 0,
                     "taiko" => 1,
@@ -55,7 +55,7 @@ public class LeaderboardController : Controller
 
         return Json(new RankingResponse
         {
-            Rankings = (await Task.WhenAll(cachedLeaderboard.Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
+            Rankings = (await Task.WhenAll(cachedLeaderboard.Where(u => u is not null).Select(async u => await RankingUser.FromUser(await u.ToOsuUser(mode, _storage), _storage, mode switch
             {
                 "osu" => 0,
                 "taiko" => 1,
@@ -120,7 +120,7 @@ public class LeaderboardController : Controller
         if (!_storage.GlobalLeaderboardCache.TryGetValue($"{mode}:perfomance", out var cachedLeaderboard))
         {
             //Caclulating...
-            var leaderboard = (await _storage.GetLeaderboard(rulesetId)).Select(c => _context.Users.FirstOrDefault(cc => cc.Id == c.Value.Id)).Skip((page - 1) * 50).ToList();
+            var leaderboard = (await _storage.GetLeaderboard(rulesetId)).Select(c => _context.Users.Where(u => !u.Banned).FirstOrDefault(cc => cc.Id == c.Value.Id)).Skip((page - 1) * 50).ToList();
             _storage.GlobalLeaderboardCache.Add($"{mode}:perfomance", leaderboard);
 
             var countries = new List<RankingCountry>();

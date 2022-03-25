@@ -19,7 +19,7 @@ public interface IUserStorage
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; }
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; }
     public Dictionary<int, Room> Rooms { get; set; }
-    public Dictionary<int, Update> Updates { get; set; }
+    public Dictionary<int, List<Update>> Updates { get; set; }
     public Dictionary<int, Channel> Channels { get; set; }
     public Dictionary<int, SpectatorState> UserStates { get; set; }
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; }
@@ -27,8 +27,8 @@ public interface IUserStorage
 
     public Task NotifyUser(int userId, string message);
     public Task AddUpdate(int userId, Update update);
-    public Task<Update> GetUpdatesForUser(int userId);
-    public Task<Channel> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
+    public Task<List<Update>> GetUpdatesForUser(int userId);
+    public Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
     public Task ForceJoinChannel(int id, int channelId);
     User GetUser(string token);
 

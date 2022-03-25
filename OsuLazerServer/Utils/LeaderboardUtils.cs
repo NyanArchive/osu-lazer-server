@@ -27,7 +27,8 @@ public class LeaderboardUtils
         }));
         foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
-            
+            if (context.Users.FirstOrDefault(c => c.Id == stats.Stats.Id)?.Banned??true)
+                continue;
             if (stats.Stats.PerformancePoints == 0)
                 continue;
             
@@ -50,6 +51,9 @@ public class LeaderboardUtils
         }));
         foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
+            if (context.Users.FirstOrDefault(c => c.Id == stats.Stats.Id)?.Banned??true)
+                continue;
+            
             
             if (stats.Stats.PerformancePoints == 0)
                 continue;
@@ -73,6 +77,9 @@ public class LeaderboardUtils
         foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
             
+            if (context.Users.FirstOrDefault(c => c.Id == stats.Stats.Id)?.Banned??true)
+                continue;
+            
             if (stats.Stats.PerformancePoints == 0)
                 continue;
             
@@ -94,7 +101,8 @@ public class LeaderboardUtils
         }));
         foreach (var stats in users.OrderByDescending(c =>c.PerformancePoints).Select((c, i) => new { Position = i, Stats = c}))
         {
-            
+            if (context.Users.FirstOrDefault(c => c.Id == stats.Stats.Id)?.Banned??true)
+                continue;
             if (stats.Stats.PerformancePoints == 0)
                 continue;
             

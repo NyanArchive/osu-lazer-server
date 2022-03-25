@@ -21,7 +21,7 @@ public class RankingUser : Statistics
             CountryRank = user.Statistics.CountryRank,
             GlobalRank =  await storage.GetUserRank(user.Id, mode),
             GradeCounts = user.Statistics.GradeCounts,
-            HitAccuracy = await storage.GetUserHitAccuracy(user.Id, mode), //Rewrite this.
+            HitAccuracy = await storage.GetUserHitAccuracy(user.Id, mode) * 100, //Rewrite this.
             IsRanked = (await storage.GetUserPerformancePoints(user.Id, mode) > 1),
             IsActive = true,
             MaximumCombo = user.Statistics.MaximumCombo,

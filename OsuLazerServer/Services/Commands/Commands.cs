@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc.TagHelpers.Cache;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets.Catch;
@@ -31,37 +33,40 @@ public class Commands
         {
             Console.WriteLine("=====================");
             Console.WriteLine("Recalculation started.");
-            
+
             Console.WriteLine("Reset Performance.");
 
             var storage = Provider.GetService<IUserStorage>();
             var ctx = new LazerContext();
-            
+
             foreach (var user in ctx.OsuStats)
             {
                 user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
+
             foreach (var user in ctx.TaikoStats)
             {
                 user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
+
             foreach (var user in ctx.FruitsStats)
             {
                 user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
+
             foreach (var user in ctx.TaikoStats)
             {
                 user.PerformancePoints = 0;
                 user.TotalScore = 0;
                 user.RankedScore = 0;
             }
-            
+
             Console.WriteLine("Recalculating scores...");
             var scores = ctx.Scores;
             foreach (var score in scores.Where(c => c.Passed))
@@ -87,7 +92,7 @@ public class Commands
 
                     await user.FetchUserStats();
 
-        
+
 
                     var ruleset = (RulesetId) score.RuleSetId switch
                     {
@@ -126,12 +131,13 @@ public class Commands
                                 [HitResult.None] = stats.None
                             },
                             HasReplay = false
-                        }, beatmap).Total ?? 0;}
+                        }, beatmap).Total ?? 0;
+                    }
 
 
                     score.PerfomancePoints = perfomance;
-                    
-                    
+
+
                     var userStats = user.GetStats(score.RuleSetId switch
                     {
                         0 => "osu",
@@ -140,18 +146,19 @@ public class Commands
                         3 => "mania",
                         _ => "osu"
                     });
-                    
-                    var unrankedMods = new []{"AT", "AA", "CN", "DA", "RX"};
-                    
-                    
+
+                    var unrankedMods = new[] {"AT", "AA", "CN", "DA", "RX"};
+
+
                     if (score.Mods.Any(mod => unrankedMods.Contains(mod)))
                     {
                         score.Status = DbScoreStatus.OUTDATED;
                         score.PerfomancePoints = 0;
-                        Console.WriteLine($"Score {score.Id} by {score.UserId} using unranked mods ({String.Join("", score.Mods)}), Unranking this score.");
+                        Console.WriteLine(
+                            $"Score {score.Id} by {score.UserId} using unranked mods ({String.Join("", score.Mods)}), Unranking this score.");
                     }
-                    
-                    
+
+
                     if (score.Status == DbScoreStatus.BEST)
                     {
                         userStats.TotalScore = score.TotalScore;
@@ -164,18 +171,19 @@ public class Commands
                     }
 
 
-                    Console.WriteLine($"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");
-                    
+                    Console.WriteLine(
+                        $"{score.UserId} {beatmap.BeatmapInfo.GetDisplayTitle()} ({beatmap.BeatmapInfo.GetDisplayTitleRomanisable()}) => {perfomance}");
+
                     await currentContext.SaveChangesAsync();
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Cannot recalculate score {score.Id}: {e.Message}");
                 }
-               
+
             }
-            
-            
+
+
             //saving scores.
             Console.WriteLine("=> Recalculating leaderboards");
             await storage.UpdateRankings("osu");
@@ -194,12 +202,46 @@ public class Commands
     {
         var context = new LazerContext();
 
-        var user = context.Users.FirstOrDefault(c => c.UsernameSafe == username.ToLower().Replace(' ', '_'));
+        var user = context.Users.AsEnumerable().FirstOrDefault(c => c.UsernameSafe == username.ToLower().Replace(' ', '_'));
 
         if (user is null)
             return "User not found";
 
+        if (user.Country == "XX")
+            return "This user don't have country already.";
 
+        user.Country = "XX";
+
+        context.SaveChanges();
         return "OK";
+    }
+
+    [Command("ban", "Ban a user", -1, true)]
+    public string BanUser(string username)
+    {
+        var context = new LazerContext();
+        var storage = Provider.GetService<IUserStorage>();
+        var distributedCache = Provider.GetService<IDistributedCache>();
+
+        var user = context.Users.AsEnumerable().FirstOrDefault(c => c.UsernameSafe == username.ToLower().Replace(' ', '_'));
+
+        if (user is null)
+            return "User not found";
+        
+        user.Banned = !user.Banned;
+
+        context.SaveChanges();
+        var currentToken = storage.Users.FirstOrDefault(c => c.Value.Id == user.Id).Key;
+        
+        distributedCache.Remove($"token:{currentToken}");
+        storage.UpdateRankings("osu");
+        storage.UpdateRankings("taiko");
+        storage.UpdateRankings("mania");
+        storage.UpdateRankings("fruits");
+        
+        
+
+
+        return $"{user.Username} has been {(user.Banned ? "banned" : "unbanned")}";
     }
 }

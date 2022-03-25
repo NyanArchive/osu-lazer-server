@@ -33,37 +33,34 @@ public class ChannelsController : Controller
     [RequiredLazerClient]
     public async Task<IActionResult> GetChannels()
     {
-        return Json(_context.Channels.Where(u => true).Select(c => new Channel
+        return Json(await Task.WhenAll(_context.Channels.AsEnumerable().Where(u => true).Select(async c => new Channel
         {
             Description = c.Description,
             Icon = null,
             Moderated = false,
-            Name = c.Name,
+            Name = c.Type == ChannelType.PM ? c.Name : $"#{c.Name}",
             Type = c.Type == ChannelType.PM ? "PM" : "PUBLIC",
-            Users = new List<int>(),
+            Users = (await _storage.GetChannelAsync(c.Id, new LazerContext())).Users,
             ChannelId = c.Id,
             LastMessageId = null,
             LastReadId = null,
-        }).ToList());
+        })));
     }
 
     [HttpGet("updates")]
     [RequiredLazerClient]
-    public async Task<IActionResult> GetUpdates([FromQuery(Name = "since")] ulong since)
+    public async Task<IActionResult> GetUpdates([FromQuery(Name = "since")] long since)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
         
         
         var updates = await _storage.GetUpdatesForUser(user.Id);
 
-        Task.Run(async () =>
+        return Json(new Update
         {
-            await Task.Delay(500);
-            _storage.Updates[user.Id].Channels.Clear();
-            _storage.Updates[user.Id].Messages.Clear();
+            Channels = updates.Where(c => c.UpdateRecievedAt.ToUnixTimeSeconds() > since).SelectMany(c => c.Channels??new List<Channel>()).ToList(),
+            Messages = updates.Where(c => c.UpdateRecievedAt.ToUnixTimeSeconds() > since).SelectMany(c => c.Messages).ToList()
         });
-
-        return Json(updates);
     }
     [HttpPut("channels/{channelid}/users/{userId}")]
     [RequiredLazerClient]
@@ -96,7 +93,7 @@ public class ChannelsController : Controller
         
         var channel = await _storage.GetChannelAsync(channelId, _context);
 
-        if (channel.Users is null)
+        if (channel is null)
             return NotFound();
         
         channel.Users.Remove(user.Id);
@@ -147,8 +144,6 @@ public class ChannelsController : Controller
                     SenderId = UserStorage.SystemSender.Id
                 });
             }
-            
-            var result = command.Action.Invoke(body.Message.Split(" ").ToList().GetRange(1, body.Message.Split(" ").Length - 1));
 
             if (command.AdminRequired && !user.IsAdmin)
             {
@@ -162,15 +157,36 @@ public class ChannelsController : Controller
                     SenderId = UserStorage.SystemSender.Id
                 }); 
             }
-            return Json(new Message
+
+            try
             {
-                Content = result,
-                Sender = UserStorage.SystemSender,
-                Timetamp = DateTime.Now,
-                ChannelId = channel.ChannelId,
-                MessageId = (int)(DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
-                SenderId = UserStorage.SystemSender.Id
-            });
+                var result = command.Action.Invoke(body.Message.Split(" ").ToList()
+                    .GetRange(1, body.Message.Split(" ").Length - 1));
+
+                return Json(new Message
+                {
+                    Content = result,
+                    Sender = UserStorage.SystemSender,
+                    Timetamp = DateTime.Now,
+                    ChannelId = channel.ChannelId,
+                    MessageId = (int) (DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
+                    SenderId = UserStorage.SystemSender.Id
+                });
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return Json(new Message
+                {
+                    Content = e.Message + "(stack trace in console)",
+                    Sender = UserStorage.SystemSender,
+                    Timetamp = DateTime.Now,
+                    ChannelId = channel.ChannelId,
+                    MessageId = (int) (DateTimeOffset.Now.ToUnixTimeSeconds() / 1000) + new Random().Next(1, 30000),
+                    SenderId = UserStorage.SystemSender.Id
+                });
+            }          
+           
         }
 
         

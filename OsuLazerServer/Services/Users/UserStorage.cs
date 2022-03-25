@@ -26,7 +26,7 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; } = new();
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; } = new();
     public Dictionary<int, Room> Rooms { get; set; } = new();
-    public Dictionary<int, Update> Updates { get; set; } = new();
+    public Dictionary<int, List<Update>> Updates { get; set; } = new();
     public Dictionary<int, Channel> Channels { get; set; } = new();
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; } = new();
@@ -58,41 +58,23 @@ public class UserStorage : IUserStorage, IServiceScope
     {
         if (!Updates.TryGetValue(userId, out var updates))
         {
-            var newUpdate = new Update
-            {
-                Channels = new List<Channel>(),
-                Messages = new List<Message>(),
-                UpdateRecievedAt = DateTimeOffset.Now
-            };
-            if (updates is null)
-                return;
-            updates.Channels?.AddRange(update.Channels ?? new List<Channel>());
-            newUpdate.Messages.AddRange(update.Messages);
-            Updates.Add(userId, newUpdate);
+            Updates.Add(userId, new List<Update> { update });
             return;
         }
-        
-        updates.Channels?.AddRange(update.Channels ?? new List<Channel>());
-        updates.Messages.AddRange(update.Messages);
-        updates.UpdateRecievedAt = DateTimeOffset.Now;
+        update.UpdateRecievedAt = DateTimeOffset.Now;
+        updates.Add(update);
     }
-    public async Task<Update> GetUpdatesForUser(int userId)
+    public async Task<List<Update>> GetUpdatesForUser(int userId)
     {
         if (!Updates.TryGetValue(userId, out var updates))
         {
-            var update = new Update
-            {
-                Channels = new List<Channel>(),
-                Messages = new List<Message>(),
-                UpdateRecievedAt = DateTimeOffset.Now
-            };
-            Updates.TryAdd(userId, update);
-            return update;
+            Updates.Add(userId, new List<Update>());
+            return Updates[userId];
         }
         
         return updates;
     }
-    public async Task<Channel> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false)
+    public async Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false)
     {
         if (Channels.TryGetValue(channelId, out var channel))
             return channel;
@@ -100,9 +82,7 @@ public class UserStorage : IUserStorage, IServiceScope
         var dbChannel = await context.Channels.FirstOrDefaultAsync(c => c.Id == channelId);
 
         if (dbChannel is null)
-        {
-            return new Channel();
-        }
+            return null;
         var newChannel = new Channel
         {
             Description = dbChannel.Description,
@@ -226,6 +206,8 @@ public class UserStorage : IUserStorage, IServiceScope
         {
             if (await GetUserPerformancePoints(kvp.Value.Id, ruleSetId) == 0)
                 continue;
+            if (context.Users.FirstOrDefault(c => c.Id == kvp.Value.Id)?.Banned??false)
+                continue;
             await cache.SetAsync($"leaderboard:{ruleSetId}:{userId}:rank", BitConverter.GetBytes(kvp.Key));
         }
         
@@ -272,7 +254,6 @@ public class UserStorage : IUserStorage, IServiceScope
         var rank = 0;
         if (!forceFetch)
         {
-          
             var cachedRank = await cache.GetAsync($"leaderboard:{mode}:{userId}:hitaccuracy");
 
             if (cachedRank is not null)
@@ -314,14 +295,22 @@ public class UserStorage : IUserStorage, IServiceScope
         for (var position = 0; position < leaderboard.Count; position++)
         {
             var user = context.Users.FirstOrDefault(c => c.Id == leaderboard.ToList()[position].Value.Id);
+
+
             var stats = user.FetchStats(mode);
+            
             var perfomance = await GetUserPerformancePoints(user.Id, rulesetId);
+       
 
             var rank = await GetUserRank(user.Id, rulesetId);
-
+            
+            Console.WriteLine($"RANK {user.Id} - DB: {leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key} - CALC: {rank} - POSITION " + position);
             if (rank != leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key)
             {
                 await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key));
+                
+                
+                Console.WriteLine($"Ranking updated. {user.Username} => {await GetUserRank(user.Id, rulesetId)}");
             }
         }
         
@@ -346,9 +335,10 @@ public class UserStorage : IUserStorage, IServiceScope
             "mania" => 3,
             _ => 0
         }) + peromance;
-        await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(currentAccuracy));
+        await cache.SetAsync($"leaderboard:{mode}:{userId}:performance", BitConverter.GetBytes(currentAccuracy));
         stats.PerformancePoints = (int)peromance;
-        
+
+        await context.SaveChangesAsync();
         return currentAccuracy;
     }
     
@@ -370,7 +360,6 @@ public class UserStorage : IUserStorage, IServiceScope
         }) + accuracy) / 2;
         await cache.SetAsync($"leaderboard:{mode}:{userId}:hitaccuracy", BitConverter.GetBytes(currentAccuracy));
         stats.Accuracy = (float)currentAccuracy;
-        
         return currentAccuracy;
     }
 
@@ -386,6 +375,7 @@ public class UserStorage : IUserStorage, IServiceScope
             3 => await leaderboardUtils.GetLeaderboardForMania()
         };
     }
+
     
     private async Task<int?> GetCachedInt(string key)
     {
