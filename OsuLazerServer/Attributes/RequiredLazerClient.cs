@@ -38,6 +38,13 @@ public class RequiredLazerClient : ActionFilterAttribute
 
                 var user = await ctx.Users.FirstAsync(u => u.Id == Convert.ToInt32(Encoding.UTF8.GetString(cachedUserId)));
 
+
+                if (user.Banned)
+                {
+                    context.HttpContext.Response.StatusCode = 401;
+                    await context.HttpContext.Response.WriteAsJsonAsync(new {authentication = "basic"});
+                    await context.HttpContext.Response.CompleteAsync(); 
+                }
                 storage.Users.TryAdd(token, user);
                 await next();
                 return;

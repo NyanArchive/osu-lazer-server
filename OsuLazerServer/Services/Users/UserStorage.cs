@@ -305,11 +305,10 @@ public class UserStorage : IUserStorage, IServiceScope
             var rank = await GetUserRank(user.Id, rulesetId);
             
             Console.WriteLine($"RANK {user.Id} - DB: {leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key} - CALC: {rank} - POSITION " + position);
-            if (rank != leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key)
+            if (rank != position + 1)
             {
-                await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(leaderboard.FirstOrDefault(c => c.Value.Id == user.Id).Key));
-                
-                
+                await cache.SetAsync($"leaderboard:{rulesetId}:{user.Id}:rank", BitConverter.GetBytes(position + 1));
+
                 Console.WriteLine($"Ranking updated. {user.Username} => {await GetUserRank(user.Id, rulesetId)}");
             }
         }

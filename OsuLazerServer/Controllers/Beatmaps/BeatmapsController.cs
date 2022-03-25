@@ -213,6 +213,8 @@ public class BeatmapsController : Controller
             stats.RankedScore += score.TotalScore;
 
             await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
+
+            await _storage.UpdateRankings(ruleset.ShortName);
         }
         else
         {

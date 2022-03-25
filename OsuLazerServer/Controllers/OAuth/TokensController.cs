@@ -79,15 +79,17 @@ public class TokensController : Controller
                 ErrorIdentifier = "-1"
             });
         }
+
+
 #if !DEBUG
         if (user.Country == "XX")
         {
-            user.Country = await IPUtils.GetCountry(Request.Headers["X-Real-IP"]);
+            user.Country = await IPUtils.GetCountry(Request.Headers["X-Forwarded-For"].ToString().Split(", ").FirstOrDefault());
             await _context.SaveChangesAsync();
         }
 
 
-        /*if (user.Country != (await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString())))
+        if (user.Country != (await IPUtils.GetCountry(Request.Headers["X-Forwarded-For"].ToString().Split(", ").FirstOrDefault())))
         {
             Response.StatusCode = 401;
             return Json(new OAuthError
@@ -96,7 +98,7 @@ public class TokensController : Controller
                 Message = "Please, contact support (001)",
                 ErrorIdentifier = "-1"
             });
-        }*/
+        }
 #endif
 
         var token = _tokensService.GenerateToken();
@@ -120,7 +122,8 @@ public class TokensController : Controller
                 Users = new List<int> {UserStorage.SystemSender.Id, user.Id},
                 ChannelId = 99912,
                 LastMessageId = null,
-                LastReadId = null
+                LastReadId = null,
+
             };
         
             channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/p9BhPXHZWB\nGit: http://s2.zloserver.com:32333/dhcpcd9/osu-lazer-server\n(DM me in Discord to activate account.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });

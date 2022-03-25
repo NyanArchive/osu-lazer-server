@@ -112,6 +112,7 @@ public class UsersController : Controller
             {
                 Email = new[] {"Invalid email."}
             });
+        
 
         var newUser = new User
         {
@@ -121,7 +122,7 @@ public class UsersController : Controller
             Username = body.Username,
             NicknameHistory = new string[] { },
 #if !DEBUG
-            Country = await IPUtils.GetCountry(Request.Headers["X-Real-IP"].ToString()),
+            Country = await IPUtils.GetCountry(Request.Headers["X-Forwarded-For"].ToString().Split(", ").FirstOrDefault()),
 #else
             Country = "US",
 #endif
