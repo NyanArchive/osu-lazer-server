@@ -1,5 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
+using BackgroundQueue;
+using BackgroundQueue.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,12 +37,14 @@ public class BeatmapsController : Controller
     private LazerContext _context;
     private IBeatmapSetResolver _resolver;
     private IUserStorage _storage;
+    private IBackgroundTaskQueue _taskQueue;
 
-    public BeatmapsController(LazerContext context, IBeatmapSetResolver resolver, IUserStorage storage)
+    public BeatmapsController(LazerContext context, IBeatmapSetResolver resolver, IUserStorage storage, IBackgroundTaskQueue taskQueue)
     {
         _context = context;
         _resolver = resolver;
         _storage = storage;
+        _taskQueue = taskQueue;
     }
 
     [HttpGet("/api/v2/beatmaps/lookup")]
@@ -73,7 +77,7 @@ public class BeatmapsController : Controller
     
     [HttpGet("scores")]
     [RequiredLazerClient]
-    public async Task<IActionResult> GetScoresAsync([FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name ="mode")] string mode)
+    public async Task<IActionResult> GetScoresAsync([FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
     {
         
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
@@ -112,6 +116,7 @@ public class BeatmapsController : Controller
 
 
     }
+    
     [HttpPost("solo/scores")]
     [RequiredLazerClient]
     public async Task<IActionResult> CreateSubmissionToken([FromRoute(Name = "id")] int beatmapId)
@@ -154,30 +159,33 @@ public class BeatmapsController : Controller
         var beatmap = new ProcessorWorkingBeatmap(beatmapStream, beatmapId);
         
         var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
-
-        var pp = ruleset.CreateInstance().CreatePerformanceCalculator()
-            ?.Calculate(new ScoreInfo
-            {
-                Accuracy = body.Accuracy,
-                Combo = body.MaxCombo,
-                MaxCombo = body.MaxCombo,
-                User = new APIUser {Username = "owo"},
-                Ruleset = ruleset,
-                Date = DateTimeOffset.UtcNow,
-                Passed = body.Passed,
-                TotalScore = body.TotalScore,
-                Statistics = new Dictionary<HitResult, int>()
+        double pp = 0;
+        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
+        {
+            pp = ruleset.CreateInstance().CreatePerformanceCalculator()
+                ?.Calculate(new ScoreInfo
                 {
-                    [HitResult.Perfect] = body.Statistics.Perfect,
-                    [HitResult.Good] = body.Statistics.Goods,
-                    [HitResult.Great] = body.Statistics.Greats,
-                    [HitResult.Meh] = body.Statistics.Meh,
-                    [HitResult.Miss] = body.Statistics.Misses,
-                    [HitResult.Ok] = body.Statistics.Ok,
-                    [HitResult.None] = body.Statistics.None
-                },
-                HasReplay = false
-            }, beatmap).Total;
+                    Accuracy = body.Accuracy,
+                    Combo = body.MaxCombo,
+                    MaxCombo = body.MaxCombo,
+                    User = new APIUser {Username = "owo"},
+                    Ruleset = ruleset,
+                    Date = DateTimeOffset.UtcNow,
+                    Passed = body.Passed,
+                    TotalScore = body.TotalScore,
+                    Statistics = new Dictionary<HitResult, int>()
+                    {
+                        [HitResult.Perfect] = body.Statistics.Perfect,
+                        [HitResult.Good] = body.Statistics.Goods,
+                        [HitResult.Great] = body.Statistics.Greats,
+                        [HitResult.Meh] = body.Statistics.Meh,
+                        [HitResult.Miss] = body.Statistics.Misses,
+                        [HitResult.Ok] = body.Statistics.Ok,
+                        [HitResult.None] = body.Statistics.None
+                    },
+                    HasReplay = false
+                }, beatmap).Total??0;   
+        }
         
         var score = new DbScore
         {
@@ -189,7 +197,7 @@ public class BeatmapsController : Controller
             BeatmapId = beatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = pp??0,
+            PerfomancePoints = pp,
             SubmittedAt = DateTimeOffset.UtcNow,
             TotalScore = body.TotalScore,
             RuleSetId = body.RulesetId
@@ -213,8 +221,12 @@ public class BeatmapsController : Controller
             stats.RankedScore += score.TotalScore;
 
             await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
-
-            await _storage.UpdateRankings(ruleset.ShortName);
+            
+            _taskQueue.Enqueue(async c =>
+            {
+                await _storage.UpdateRankings(ruleset.ShortName);
+            });
+         
         }
         else
         {
@@ -279,8 +291,7 @@ public class BeatmapsController : Controller
             RulesetID = score.RuleSetId
         });
     }
-
-
+    
     [HttpGet("/api/v2/beatmaps")]
     [RequiredLazerClient]
     public async Task<IActionResult> GetBeatmaps()
@@ -337,29 +348,35 @@ public class BeatmapsController : Controller
         
         var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
 
-        var pp = ruleset.CreateInstance().CreatePerformanceCalculator()
-            ?.Calculate(new ScoreInfo
-            {
-                Accuracy = body.Accuracy,
-                Combo = body.MaxCombo,
-                MaxCombo = body.MaxCombo,
-                User = new APIUser {Username = "owo"},
-                Ruleset = ruleset,
-                Date = DateTimeOffset.UtcNow,
-                Passed = body.Passed,
-                TotalScore = body.TotalScore,
-                Statistics = new Dictionary<HitResult, int>()
+
+        double pp = 0;
+        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
+        {
+            pp = ruleset.CreateInstance().CreatePerformanceCalculator()
+                ?.Calculate(new ScoreInfo
                 {
-                    [HitResult.Perfect] = body.Statistics.Perfect,
-                    [HitResult.Good] = body.Statistics.Goods,
-                    [HitResult.Great] = body.Statistics.Greats,
-                    [HitResult.Meh] = body.Statistics.Meh,
-                    [HitResult.Miss] = body.Statistics.Misses,
-                    [HitResult.Ok] = body.Statistics.Ok,
-                    [HitResult.None] = body.Statistics.None
-                },
-                HasReplay = false
-            }, beatmap).Total;
+                    Accuracy = body.Accuracy,
+                    Combo = body.MaxCombo,
+                    MaxCombo = body.MaxCombo,
+                    User = new APIUser {Username = "owo"},
+                    Ruleset = ruleset,
+                    Date = DateTimeOffset.UtcNow,
+                    Passed = body.Passed,
+                    TotalScore = body.TotalScore,
+                    Statistics = new Dictionary<HitResult, int>()
+                    {
+                        [HitResult.Perfect] = body.Statistics.Perfect,
+                        [HitResult.Good] = body.Statistics.Goods,
+                        [HitResult.Great] = body.Statistics.Greats,
+                        [HitResult.Meh] = body.Statistics.Meh,
+                        [HitResult.Miss] = body.Statistics.Misses,
+                        [HitResult.Ok] = body.Statistics.Ok,
+                        [HitResult.None] = body.Statistics.None
+                    },
+                    HasReplay = false
+                }, beatmap).Total??0;   
+        }
+   
         var score = new DbScore
         {
             Accuracy = body.Accuracy,
@@ -370,7 +387,7 @@ public class BeatmapsController : Controller
             BeatmapId = item.BeatmapId,
             MaxCombo = body.MaxCombo,
             Passed = body.Passed,
-            PerfomancePoints = pp??0,
+            PerfomancePoints = pp,
             SubmittedIn = room.Id.Value,
             SubmittionPlaylist = item.ID,
             SubmittedAt = DateTimeOffset.UtcNow,
@@ -397,6 +414,11 @@ public class BeatmapsController : Controller
 
             stats.PerformancePoints += (int) Math.Floor(score.PerfomancePoints);
             await _storage.UpdateHitAccuracy(ruleset.ShortName, user.Id, score.Accuracy);
+            
+            _taskQueue.Enqueue(async c =>
+            {
+                await _storage.UpdateRankings(ruleset.ShortName);
+            });
         }
         else
         {

@@ -1,3 +1,5 @@
+using BackgroundQueue;
+using BackgroundQueue.Generic;
 using osu.Game.Online;
 using OsuLazerServer.Database;
 using OsuLazerServer.Multiplayer;
@@ -37,9 +39,11 @@ builder.Services.AddStackExchangeRedisCache(args => args.Configuration = "localh
 #endif
 builder.Services.AddScoped<ITokensService, TokenService>();
 builder.Services.AddSingleton<IUserStorage, UserStorage>();
-builder.Services.AddScoped<IBeatmapSetResolver, BeatmapSetResolverService>();
+builder.Services.AddSingleton<IBeatmapSetResolver, BeatmapSetResolverService>();
 builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
 builder.Services.AddSingleton<ICommandManager, CommandManagerService>();
+builder.Services.AddBackgroundTaskQueue();
+builder.Services.AddBackgroundResultQueue();
 
 var app = builder.Build();
 

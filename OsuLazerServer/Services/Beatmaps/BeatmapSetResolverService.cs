@@ -1,12 +1,22 @@
 ﻿using System.Net;
 using System.Text.Json;
+using BackgroundQueue;
+using BackgroundQueue.Generic;
 
 namespace OsuLazerServer.Services.Beatmaps;
 
-public class BeatmapSetResolverService : IBeatmapSetResolver
+public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
 {
     public Dictionary<int, object> BeatmapsCache { get; set; } = new();
 
+    
+    public IServiceProvider ServiceProvider { get; }
+    public IServiceScope Scope { get; set; }
+    public BeatmapSetResolverService(IServiceProvider services)
+    {
+        ServiceProvider = services;
+        Scope = ServiceProvider.CreateScope();
+    }
     public async Task<List<BeatmapSet?>> FetchSets(string query, string mode, int offset, bool nsfw, string status = "any")
     {
         var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
@@ -38,15 +48,19 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
         if (body is not null)
         {
             BeatmapsCache.TryAdd(setId, body);
+            foreach (var beatmap in body.Beatmaps)
+            {
+                BeatmapsCache.TryAdd(beatmap.Id, beatmap);
+            }
         }
         return body;
     }
 
     public async Task<Beatmap> FetchBeatmap(int beatmapId)
     {
-        if (BeatmapsCache.TryGetValue(beatmapId, out var set))
+        if (BeatmapsCache.TryGetValue(beatmapId, out var beatmap))
         {
-            if (set is Beatmap value)
+            if (beatmap is Beatmap value)
                 return value;
         }
 
@@ -56,8 +70,20 @@ public class BeatmapSetResolverService : IBeatmapSetResolver
         
         if (body is not null)
         {
-            BeatmapsCache.TryAdd(beatmapId, body);
+            var cache = Scope.ServiceProvider.GetService<IBackgroundTaskQueue>();
+            cache.Enqueue(async (c) =>
+            {
+                await FetchSetAsync(body.BeatmapsetId);
+            });
+
         }
         return body;
     }
+    
+
+    public void Dispose()
+    {
+        
+    }
+
 }
