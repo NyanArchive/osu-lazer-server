@@ -23,7 +23,7 @@ public class LazerContext : DbContext
     {
 #if !DEBUG
         optionsBuilder.UseNpgsql(
-            $"Host={Environment.GetEnvironmentVariable("DB_HOST")};Port={Environment.GetEnvironmentVariable("DB_PORT")};Database={Environment.GetEnvironmentVariable("DB_NANE")};Username={Environment.GetEnvironmentVariable("DB_USER")};Password={Environment.GetEnvironmentVariable("DB_PASS")}");
+            $"Host={Environment.GetEnvironmentVariable("DB_HOST")};Port={Environment.GetEnvironmentVariable("DB_PORT")};Database={Environment.GetEnvironmentVariable("DB_NAME")};Username={Environment.GetEnvironmentVariable("DB_USER")};Password={Environment.GetEnvironmentVariable("DB_PASS")}");
 #else
         optionsBuilder.UseNpgsql(
             $"Host=localhost;Port=5432;Database=lazer;Username=postgres;Password=123321");

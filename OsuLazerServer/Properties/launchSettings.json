@@ -16,7 +16,12 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "SECRET_JWT": "32oij532i532ij532ij53i2",
-        "DISCORD_URL": "https://discord.gg/kx7aeJZn2D"
+        "DISCORD_URL": "https://discord.gg/kx7aeJZn2D",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_USER": "postgres",
+        "DB_PASS": "1233211",
+        "DB_Name": "osulazer"
       }
     },
     "IIS Express": {
