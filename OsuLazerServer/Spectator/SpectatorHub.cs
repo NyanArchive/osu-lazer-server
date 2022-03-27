@@ -57,8 +57,8 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
     public async Task EndPlaySession(SpectatorState state)
     {
         
-        _storage.UserStates.FirstOrDefault(s => s.Key == _user.Id).Value.State = SpectatedUserState.Idle;
-        await Clients.All.UserFinishedPlaying(_user.Id, state);
+        _storage.UserStates.FirstOrDefault(s => s.Key == _user?.Id).Value.State = SpectatedUserState.Idle;
+        await Clients.All.UserFinishedPlaying(_user?.Id??0, state);
     }
 
     public async Task StartWatchingUser(int userId)

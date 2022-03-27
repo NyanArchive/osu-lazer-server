@@ -2,6 +2,7 @@
 using NuGet.Packaging;
 using osu.Game.Online.API;
 using osu.Game.Online.Multiplayer;
+using osu.Game.Online.Multiplayer.Countdown;
 using osu.Game.Online.Multiplayer.MatchTypes.TeamVersus;
 using osu.Game.Online.Rooms;
 using OsuLazerServer.Database.Tables;
@@ -14,12 +15,14 @@ using Channel = OsuLazerServer.Models.Chat.Channel;
 using PlaylistItem = OsuLazerServer.Models.Multiplayer.PlaylistItem;
 
 namespace OsuLazerServer.Multiplayer;
+
 //TODO: Rewire room variable to method.
 public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 {
-    
     private IUserStorage _storage;
     private IBeatmapSetResolver _resolver;
+    private Task _countdownTask;
+
     private User _user =>
         _storage.GetUser(Context.GetHttpContext().Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
 
@@ -35,6 +38,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         await Clients.Group(GetGroupId(room.RoomID)).RoomStateChanged(room.State);
     }
+
     public async Task LeaveRoom()
     {
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
@@ -42,20 +46,20 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         if (room is null)
             return;
 
-        
+
         if (room.Users.Count == 1)
         {
-            var serverRoom = _storage.Rooms[(int)room.RoomID];
+            var serverRoom = _storage.Rooms[(int) room.RoomID];
             _storage.Rooms.Remove(serverRoom.Id.Value);
             _storage.Channels.Remove(serverRoom.ChannelId);
-            _storage.HubRooms.Remove((int)room.RoomID);
-
+            _storage.HubRooms.Remove((int) room.RoomID);
         }
+
         if (room.Host?.UserID == _user.Id)
         {
             room.Host = room.Users.FirstOrDefault(u => u.UserID != _user.Id);
         }
-        
+
         room.Users.Remove(room.Users.FirstOrDefault(u => u.UserID == _user.Id));
         await Clients.Group(GetGroupId(room.RoomID)).UserLeft(new MultiplayerRoomUser(_user.Id));
         await Groups.RemoveFromGroupAsync(GetGroupId(room.RoomID), Context.ConnectionId);
@@ -70,9 +74,9 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         if (!room.Users.Any(u => u.UserID == userId))
             throw new InvalidOperationException("This user doesn't exists.");
-        
+
         room.Host = room.Users.FirstOrDefault(u => u.UserID == userId);
-        
+
         await Clients.Groups(GetGroupId(room.RoomID)).HostChanged(userId);
     }
 
@@ -88,7 +92,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
 
         await Clients.Groups(GetGroupId(room.RoomID)).UserKicked(new MultiplayerRoomUser(userId));
-        
+
         room.Users.Remove(room.Users.FirstOrDefault(c => c.UserID == userId));
     }
 
@@ -99,14 +103,13 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         var playlistId = room.Settings.PlaylistItemId;
         room.Settings = settings;
         room.Settings.PlaylistItemId = playlistId;
-        
+
         await Clients.Group(GetGroupId(room.RoomID)).SettingsChanged(settings);
     }
-    
+
 
     public async Task ChangeState(MultiplayerUserState newState)
     {
-        
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
 
         room.Users.FirstOrDefault(u => u.UserID == _user.Id).State = newState;
@@ -118,8 +121,13 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         {
             foreach (var user in room.Users)
             {
-                user.State = user.State == MultiplayerUserState.Spectating ? MultiplayerUserState.Spectating : MultiplayerUserState.Playing;
-                changeState(user.UserID, user.State == MultiplayerUserState.Spectating ? MultiplayerUserState.Spectating : MultiplayerUserState.Playing);
+                user.State = user.State == MultiplayerUserState.Spectating
+                    ? MultiplayerUserState.Spectating
+                    : MultiplayerUserState.Playing;
+                changeState(user.UserID,
+                    user.State == MultiplayerUserState.Spectating
+                        ? MultiplayerUserState.Spectating
+                        : MultiplayerUserState.Playing);
             }
 
             await Clients.Group(GetGroupId(room.RoomID)).MatchStarted();
@@ -128,16 +136,15 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         }
 
 
-        if (room.Users.All(c => c.State == MultiplayerUserState.FinishedPlay || c.State == MultiplayerUserState.Spectating))
+        if (room.Users.All(c =>
+                c.State == MultiplayerUserState.FinishedPlay || c.State == MultiplayerUserState.Spectating))
         {
-   
-        
             foreach (var user in room.Users)
             {
                 await changeState(user.UserID, MultiplayerUserState.Idle);
             }
-            
-           
+
+
             await Clients.Group(GetGroupId(room.RoomID)).ResultsReady();
             room.Playlist[0].PlayedAt = DateTimeOffset.Now;
 
@@ -155,31 +162,33 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
                 {
                     await _storage.AddUpdate(u, new Update
                     {
-                        Messages = new List<Message> {
-                            new Message
+                        Messages = new List<Message>
                         {
-                            Content = "No more items in playlist, please add one more or leave.",
-                            Sender = UserStorage.SystemSender,
-                            Timetamp = DateTime.Now,
-                            ChannelId = channel.ChannelId,
-                            MessageId = (int)DateTimeOffset.Now.ToUnixTimeSeconds() / 1000,
-                            SenderId = UserStorage.SystemSender.Id
-                        }}
+                            new Message
+                            {
+                                Content = "No more items in playlist, please add one more or leave.",
+                                Sender = UserStorage.SystemSender,
+                                Timetamp = DateTime.Now,
+                                ChannelId = channel.ChannelId,
+                                MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000,
+                                SenderId = UserStorage.SystemSender.Id
+                            }
+                        }
                     });
                 }
 
                 room.Settings.PlaylistItemId = 0;
                 await Clients.Group(GetGroupId(room.RoomID)).SettingsChanged(room.Settings);
             }
+
             return;
         }
 
         await Clients.Group(GetGroupId(room.RoomID)).UserStateChanged(_user.Id, newState);
     }
-    
+
     private async Task changeState(int userId, MultiplayerUserState newState)
     {
-        
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
 
 
@@ -203,7 +212,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         var user = room.Users.FirstOrDefault(u => u.UserID == _user.Id);
         user.Mods = newMods;
-        
+
         await Clients.Group(GetGroupId(room.RoomID)).UserModsChanged(user.UserID, user.Mods);
     }
 
@@ -236,16 +245,118 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         if (room.Settings.PlaylistItemId == 0)
         {
-            room.Settings.PlaylistItemId = room.Playlist.FirstOrDefault()?.ID??0;
+            room.Settings.PlaylistItemId = room.Playlist.FirstOrDefault()?.ID ?? 0;
             await Clients.Group(GetGroupId(room.RoomID)).SettingsChanged(room.Settings);
         }
     }
 
-    public async Task SendMatchRequest(MatchUserRequest request)
+    public async Task SendMatchRequest(MatchUserRequest matchRequest)
     {
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
+        var serverRoom = _storage.Rooms[(int) room.RoomID];
 
-        //Not documentated.
+        if (matchRequest is StartMatchCountdownRequest request)
+        {
+            if (room.Host.UserID != _user.Id)
+                throw new InvalidOperationException("Not host!");
+            var countdown = new MatchStartCountdown
+            {
+                TimeRemaining = request.Duration
+            };
+
+            room.Countdown = countdown;
+            serverRoom.StartCancellationTokenSource = new CancellationTokenSource();
+
+            var currentGroup = Clients.Group(GetGroupId(room.RoomID));
+            var internalCountdown = countdown.TimeRemaining;
+            _countdownTask = new Task(async () =>
+            {
+                while (true)
+                {
+                    var token = _storage.Rooms[(int) room.RoomID].StartCancellationTokenSource;
+                    if (token.IsCancellationRequested)
+                        break;
+
+                    internalCountdown = internalCountdown.Subtract(TimeSpan.FromSeconds(1));
+                    var channel = _storage.Channels[_storage.Rooms[(int) room.RoomID].ChannelId];
+
+                    if (internalCountdown.TotalSeconds <= 5 && internalCountdown.TotalSeconds > 0)
+                    {
+        
+                        foreach (var user in channel.Users)
+                        {
+                            await _storage.AddUpdate(user, new Update
+                            {
+                                Channels = new List<Channel>(),
+                                Messages = new List<Message>
+                                {
+                                    new Message
+                                    {
+                                        Content = $"Starting match in {internalCountdown.TotalSeconds} seconds!",
+                                        Sender = UserStorage.SystemSender,
+                                        Timetamp = DateTime.Now,
+                                        ChannelId = channel.ChannelId,
+                                        MessageId = DateTimeOffset.Now.ToUnixTimeMilliseconds() / 1000
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    if (internalCountdown.TotalSeconds <= 0)
+                    {
+                        foreach (var user in channel.Users)
+                        {
+                            await _storage.AddUpdate(user, new Update
+                            {
+                                Channels = new List<Channel>(),
+                                Messages = new List<Message>
+                                {
+                                    new Message
+                                    {
+                                        Content = $"Starting match!",
+                                        Sender = UserStorage.SystemSender,
+                                        Timetamp = DateTime.Now,
+                                        ChannelId = channel.ChannelId,
+                                        MessageId = DateTimeOffset.Now.ToUnixTimeMilliseconds() / 1000
+                                    }
+                                }
+                            });
+                        }
+                        room.State = MultiplayerRoomState.WaitingForLoad;
+        
+      
+                        foreach (var user in room.Users.Where(c => c.State == MultiplayerUserState.Ready))
+                        {
+                            await changeState(user.UserID, MultiplayerUserState.WaitingForLoad);
+                        }
+                        await Clients.Group(GetGroupId(room.RoomID)).RoomStateChanged(room.State);
+                        await Clients.Group(GetGroupId(room.RoomID)).LoadRequested();
+                        break;
+                    }
+
+                    await currentGroup.MatchEvent(new CountdownChangedEvent
+                    {
+                        Countdown = countdown
+                    });
+  
+
+                    await Task.Delay(1000);
+                }
+            });
+            _countdownTask.Start();
+        }
+
+        if (matchRequest is StopCountdownRequest)
+        {
+            if (room.Countdown is null)
+                throw new InvalidOperationException("No countdown!");
+            serverRoom.StartCancellationTokenSource.Cancel();
+            room.Countdown = null;
+            await Clients.Group(GetGroupId(room.RoomID)).MatchEvent(new CountdownChangedEvent
+            {
+                Countdown = null
+            });
+        }
     }
 
     public async Task StartMatch()
@@ -266,12 +377,12 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
             throw new InvalidOperationException("Cannot start with not ready host.");
 
 
-        room.State = MultiplayerRoomState.Playing;
+        room.State = MultiplayerRoomState.WaitingForLoad;
         foreach (var user in room.Users.Where(c => c.State == MultiplayerUserState.Ready))
         {
             await changeState(user.UserID, MultiplayerUserState.WaitingForLoad);
         }
-        
+
         await Clients.Group(GetGroupId(room.RoomID)).LoadRequested();
     }
 
@@ -289,32 +400,32 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
 
         room.State = MultiplayerRoomState.Open;
-        
+        await Clients.Group(GetGroupId(room.RoomID)).RoomStateChanged(room.State);
     }
 
     public async Task AddPlaylistItem(MultiplayerPlaylistItem item)
     {
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
-        
+
         item.ID = item.BeatmapID;
         item.OwnerID = _user.Id;
         room.Playlist.Add(item);
-     
+
         await Clients.Group(GetGroupId(room.RoomID)).PlaylistItemAdded(item);
-        
+
         await editPlaylist();
     }
 
     public async Task EditPlaylistItem(MultiplayerPlaylistItem item)
     {
         var room = _storage.HubRooms.Values.FirstOrDefault(c => c.Users.Any(d => d.UserID == _user.Id));
-        
+
         item.ID = room.Playlist[0].ID;
         item.OwnerID = _user.Id;
         room.Playlist[0] = item;
-        
+
         await Clients.Group(GetGroupId(room.RoomID)).PlaylistItemChanged(item);
-        
+
         await editPlaylist();
     }
 
@@ -326,7 +437,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         if (room.Playlist.Count < 2)
             throw new InvalidOperationException("Playlist cannot be empty!");
 
-     
+
         room.Playlist.Remove(room.Playlist.FirstOrDefault(p => p.ID == playlistItemId));
         if (playlistItemId == room.Settings.PlaylistItemId)
         {
@@ -339,6 +450,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
     }
 
     public Task<MultiplayerRoom> JoinRoom(long roomId) => JoinRoomWithPassword(roomId, String.Empty);
+
     public async Task<MultiplayerRoom> JoinRoomWithPassword(long roomId, string password)
     {
         if (_user.Banned)
@@ -356,14 +468,14 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
 
         room.Users.Add(new MultiplayerRoomUser(_user.Id));
 
-        var channelId = _storage.Rooms[(int) roomId]?.ChannelId??0;
+        var channelId = _storage.Rooms[(int) roomId]?.ChannelId ?? 0;
         _storage.Channels[channelId].Users.Add(_user.Id);
 
         foreach (var uId in _storage.Channels[channelId].Users)
         {
             await _storage.AddUpdate(uId, new Update
             {
-                Channels = new List<Channel> {_storage.Channels[channelId] },
+                Channels = new List<Channel> {_storage.Channels[channelId]},
                 Messages = new List<Message>()
                 {
                     new Message
@@ -378,7 +490,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
                 }
             });
         }
-        
+
         await Clients.Group(GetGroupId(roomId)).UserJoined(new MultiplayerRoomUser(_user.Id));
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupId(roomId));

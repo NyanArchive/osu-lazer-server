@@ -68,6 +68,9 @@ public class Room : ICloneable
     
     [JsonPropertyName("max_attemps")]
     public int MaxAttempts { get; set; }
+    
+    [JsonIgnore]
+    public CancellationTokenSource? StartCancellationTokenSource { get; set; }
 
     public object Clone()
     {
