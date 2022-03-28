@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using OsuLazerServer.Services.Wiki.News;
 
 namespace OsuLazerServer.Services.Wiki;
 
@@ -52,6 +53,12 @@ public class WikiResolverService : IWikiResolver
 
     public List<string> ListOfNews()
     {
-        return new List<string>();
+        return Directory.GetDirectories(Path.Join("data", "news")).Select(Path.GetFileName).ToList();
+    }
+
+    public NewsEntry GetNewsEntry(string news)
+    {
+        var result = JsonSerializer.Deserialize<NewsEntry>(File.ReadAllText(Path.Combine("data", "news", Path.GetFileName(news), "data.json")));
+        return result;
     }
 }

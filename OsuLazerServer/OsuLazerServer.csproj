@@ -36,4 +36,9 @@
       <Folder Include="ThirdParty" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="data\news\We_Are_Open\data.json" />
+      <_ContentIncludedByDefault Remove="data\wiki\main_page\info.json" />
+    </ItemGroup>
+
 </Project>

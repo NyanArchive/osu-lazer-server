@@ -24,9 +24,11 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
     {
         if (_user is null)
         {
-            return;
             Context.Abort();
+            return;
         }
+        
+        
         _storage.UserStates.TryAdd(_user.Id, new SpectatorState
         {
             Mods = new List<APIMod>(),

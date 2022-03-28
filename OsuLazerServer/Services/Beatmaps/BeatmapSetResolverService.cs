@@ -17,9 +17,9 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         ServiceProvider = services;
         Scope = ServiceProvider.CreateScope();
     }
-    public async Task<List<BeatmapSet?>> FetchSets(string query, string mode, int offset, bool nsfw, string status = "any")
+    public async Task<List<BeatmapSet?>> FetchSets(string query, int mode, int offset, bool nsfw, string status = "any")
     {
-        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0&ps=300");
 
         if (!request.IsSuccessStatusCode)
             return null;
@@ -28,7 +28,8 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
 
         foreach (var map in body)
         {
-            BeatmapsCache.Add(map.Id, map);
+            if (!BeatmapsCache.ContainsKey(map.Id))
+                BeatmapsCache.Add(map.Id, map);
         }
         
         return body;

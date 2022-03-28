@@ -1,4 +1,6 @@
-﻿namespace OsuLazerServer.Services.Wiki;
+﻿using OsuLazerServer.Services.Wiki.News;
+
+namespace OsuLazerServer.Services.Wiki;
 
 public interface IWikiResolver
 {
@@ -13,6 +15,8 @@ public interface IWikiResolver
     public WikiInfo GetWikiPage(string wiki);
 
     public List<string> ListOfNews();
+    
+    public NewsEntry GetNewsEntry(string news);
 
 
 }

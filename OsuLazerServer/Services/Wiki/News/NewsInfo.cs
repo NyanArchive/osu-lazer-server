@@ -2,7 +2,7 @@
 
 namespace OsuLazerServer.Services.Wiki.News;
 
-public struct NewsInfo
+public struct NewsEntry
 {
     [JsonPropertyName("id")]
     public long Id { get; set; }
@@ -27,8 +27,6 @@ public struct NewsInfo
 
     [JsonPropertyName("title")]
     public string Title { get; set; }
-
-
     [JsonPropertyName("preview")]
     public string Preview { get; set; }
 }

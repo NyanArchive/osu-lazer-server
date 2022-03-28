@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Models.Response.Beatmaps;
 using OsuLazerServer.Services.Beatmaps;
+using OsuLazerServer.Utils;
 
 namespace OsuLazerServer.Controllers;
 
@@ -19,9 +20,9 @@ public class BeatmapsController : Controller
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> GetBeatmapSets([FromQuery(Name = "q")] string? query = "all", [FromQuery(Name = "s")] string? status = "leaderboard")
+    public async Task<IActionResult> GetBeatmapSets([FromQuery(Name = "q")] string? query = "all", [FromQuery(Name = "s")] string? status = "leaderboard", [FromQuery(Name = "mode")] string? mode = "osu")
     {
-        var beatmaps = await _resolver.FetchSets(query == "all" ? "" : query, "-1", 0, false, status == "all" ? "any" : status);
-        return Json(new { beatmapsets = beatmaps.Select(b => b.ToBeatmapSet()), total = beatmaps.Count});
+        var beatmaps = await _resolver.FetchSets(query == "all" ? "" : query, ModeUtils.RuleSetId(mode), 0, false, status == "all" ? "any" : status);
+        return Json(new { beatmapsets = beatmaps.Take(50).Select(b => b.ToBeatmapSet()), total = beatmaps.Count});
     }
 }
