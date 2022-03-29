@@ -114,7 +114,7 @@ public class TokensController : Controller
             var channel = new Channel
             {
                 Description = "PM",
-                Icon = null,
+                Icon = "https://media.discordapp.net/attachments/704709247157403658/958350667368497182/7465025dcf759618.png",
                 Messages = new List<Message>(),
                 Moderated = false,
                 Name = UserStorage.SystemSender.Username,
