@@ -40,9 +40,9 @@ public class UserStorage : IUserStorage, IServiceScope
     }
     public static Sender SystemSender { get; set; } = new Sender
     {
-        Id = 1,
+        Id = 99991,
         Username = "Oleg",
-        AvatarUrl = "https://media.discordapp.net/attachments/944308912671322122/952827877290807316/file_198.jpg",
+        AvatarUrl = "https://media.discordapp.net/attachments/704709247157403658/958350667368497182/7465025dcf759618.png",
         CountryCode = "UA",
         DefaultGroup = "bot",
         IsActive = true,
