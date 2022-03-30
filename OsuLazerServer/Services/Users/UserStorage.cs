@@ -44,35 +44,54 @@ public class UserStorage : IUserStorage, IServiceScope
         Username = "Oleg",
         AvatarUrl = "https://media.discordapp.net/attachments/704709247157403658/958350667368497182/7465025dcf759618.png",
         CountryCode = "UA",
-        DefaultGroup = "bot",
+        DefaultGroup = "user",
         IsActive = true,
-        IsBot = true,
+        IsBot = false,
         IsDeleted = false,
         IsOnline = true,
         IsSupporter = true,
         LastVisit = DateTime.Now,
-        ProfileColour = "#FFFFFF",
+        ProfileColour = null,
         PmFriendsOnly = false
     };
-    public async Task AddUpdate(int userId, Update update)
+
+
+
+    #region Channels
+
+    public async Task SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false)
     {
-        if (!Updates.TryGetValue(userId, out var updates))
+        var messageChannel = Channels[channel.ChannelId];
+        messageChannel.Messages.Add(new Message
         {
-            Updates.Add(userId, new List<Update> { update });
-            return;
-        }
-        update.UpdateRecievedAt = DateTimeOffset.Now;
-        updates.Add(update);
-    }
-    public async Task<List<Update>> GetUpdatesForUser(int userId)
-    {
-        if (!Updates.TryGetValue(userId, out var updates))
+            ChannelId = channel.ChannelId,
+            Sender = sender,
+            Content = message,
+            Timetamp = DateTime.Now,
+            MessageId = channel.Messages.Count + 2,
+            SenderId = sender.Id
+        });
+
+        foreach (var uId in messageChannel.Users)
         {
-            Updates.Add(userId, new List<Update>());
-            return Updates[userId];
+            await AddUpdate(uId, new Update
+            {
+                Channels = new List<Channel>(),
+                Messages = new List<Message>
+                {
+                    new Message
+                    {
+                        ChannelId = channel.ChannelId,
+                        Sender = sender,
+                        Content = message,
+                        Timetamp = DateTime.Now,
+                        MessageId = channel.Messages.Count + 2,
+                        SenderId = sender.Id
+                    }
+                }
+            });
         }
         
-        return updates;
     }
     public async Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false)
     {
@@ -95,7 +114,7 @@ public class UserStorage : IUserStorage, IServiceScope
                     Sender = SystemSender,
                     Timetamp = DateTime.Now,
                     ChannelId = dbChannel.Id,
-                    MessageId = DateTimeOffset.Now.ToUnixTimeSeconds(),
+                    MessageId = 0,
                     SenderId = SystemSender.Id
                 }
             },
@@ -112,43 +131,46 @@ public class UserStorage : IUserStorage, IServiceScope
         
         return newChannel;
     }
-    public async Task ForceJoinChannel(int userId, int channelId)
+    public Channel GetChannel(int channelId, bool forceFetch = false)
     {
-        var channel = await GetChannelAsync(channelId, new LazerContext());
+        if (Channels.TryGetValue(channelId, out var channel))
+            return channel;
 
-        await AddUpdate(userId, new Update
+        var context = new LazerContext();
+
+        var dbChannel = context.Channels.FirstOrDefault(c => c.Id == channelId);
+
+        if (dbChannel is null)
+            return null;
+        var newChannel = new Channel
         {
-            Channels = new List<Channel> { channel },
-            Messages = new List<Message>()
-        });
-    }
-    public User? GetUser(string token)
-    {
-        if (!Users.TryGetValue(token, out var u))
-        {
-            var cache = ServiceProvider.GetRequiredService<IDistributedCache>();
-            var cachedUserId = cache.Get($"token:{token}");
-            //We trying to get it from redis.
-            if (cachedUserId is not null)
+            Description = dbChannel.Description,
+            Icon = null,
+            Messages = new List<Message>
             {
-                var expiresAtRaw =  Convert.ToInt64(Encoding.UTF8.GetString(cache.Get($"token:{token}:expires_at") ?? Array.Empty<byte>()));
-
-                if (expiresAtRaw <
-                    DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                new Message
                 {
-                    return null;
+                    Content = $"Welcome to #{dbChannel.Name}",
+                    Sender = SystemSender,
+                    Timetamp = DateTime.Now,
+                    ChannelId = dbChannel.Id,
+                    MessageId = 0,
+                    SenderId = SystemSender.Id
                 }
-
-                var user = new LazerContext().Users.First(u => u.Id == Convert.ToInt32(Encoding.UTF8.GetString(cachedUserId)));
-
-                Users.TryAdd(token, user);
-                return null;
-            }
-        }
-
-        return u;
+            },
+            Moderated = false,
+            Name = dbChannel.Name,
+            Type = dbChannel.Type == ChannelType.PM ? "PM" : "PUBLIC",
+            Users = new List<int>(),
+            ChannelId = dbChannel.Id,
+            LastMessageId = null,
+            LastReadId = null
+        };
+        
+        Channels.Add(newChannel.ChannelId, newChannel);
+        
+        return newChannel;
     }
-
     public async Task NotifyUser(int userId, string message)
     {
         await AddUpdate(userId, new Update
@@ -182,7 +204,128 @@ public class UserStorage : IUserStorage, IServiceScope
             }
         });
     }
+
+    #endregion
     
+    #region Updates
+    public async Task AddUpdate(int userId, Update update)
+    {
+        if (!Updates.TryGetValue(userId, out var updates))
+        {
+            Updates.Add(userId, new List<Update> { update });
+            return;
+        }
+        update.UpdateRecievedAt = DateTimeOffset.Now;
+        updates.Add(update);
+    }
+    public async Task<List<Update>> GetUpdatesForUser(int userId)
+    {
+        if (!Updates.TryGetValue(userId, out var updates))
+        {
+            Updates.Add(userId, new List<Update>());
+            return Updates[userId];
+        }
+        
+        return updates;
+    }
+
+    public async Task SendMessageToUser(User user, string message, bool isAction)
+    {
+        var pm = Channels
+            .Where(c => c.Value.Type == "PM" && c.Value.Users.Contains(user.Id) &&
+                        c.Value.Users.Contains(SystemSender.Id)).Select(c => c.Value).FirstOrDefault();
+        if (pm is null)
+        {
+            pm = new Channel
+            {
+                Description = "Private message channel.",
+                Icon = null,
+                Messages = new List<Message>(),
+                Moderated = false,
+                Name = SystemSender.Username,
+                Type = "PM",
+                Users = new List<int>() {user.Id, SystemSender.Id},
+                ChannelId = Channels.Count + 1,
+                LastMessageId = null,
+                LastReadId = null
+            };
+            Channels.Add(pm.ChannelId, pm);
+            await ForceJoinChannel(user.Id, pm.ChannelId);
+        }
+        var messageId = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 1000;
+        var newMessage = new Message
+        {
+            Content = message,
+            Sender = SystemSender,
+            Timetamp = DateTime.Now,
+            ChannelId = pm.ChannelId,
+            MessageId = messageId,
+            SenderId = SystemSender.Id
+        };
+        pm.Messages.Add(newMessage);
+        pm.LastMessageId = messageId;
+        pm.LastReadId = null;
+        await AddUpdate(user.Id, new Update
+        {
+            Channels = new List<Channel> {pm},
+            Messages = new List<Message> {newMessage}
+        });
+    }
+
+    public async Task ForceJoinChannel(int userId, int channelId)
+    {
+        var channel = await GetChannelAsync(channelId, new LazerContext());
+        
+        if (!channel.Users.Contains(userId))
+            channel.Users.Add(userId);
+        await AddUpdate(userId, new Update
+        {
+            Channels = new List<Channel> { channel },
+            Messages = new List<Message>()
+        });
+    }
+
+    #endregion
+
+    #region Leaderboard
+    public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
+    {
+        var leaderboardUtils = new LeaderboardUtils(this);
+        return ruleset switch
+        {
+            0 => await leaderboardUtils.GetLeaderboardForOsu(),
+            1 => await leaderboardUtils.GetLeaderboardForTaiko(),
+            2 => await leaderboardUtils.GetLeaderboardForFruits(),
+            3 => await leaderboardUtils.GetLeaderboardForMania()
+        };
+    }
+    public User? GetUser(string token)
+    {
+        if (!Users.TryGetValue(token, out var u))
+        {
+            var cache = ServiceProvider.GetRequiredService<IDistributedCache>();
+            var cachedUserId = cache.Get($"token:{token}");
+            //We trying to get it from redis.
+            if (cachedUserId is not null)
+            {
+                var expiresAtRaw =  Convert.ToInt64(Encoding.UTF8.GetString(cache.Get($"token:{token}:expires_at") ?? Array.Empty<byte>()));
+
+                if (expiresAtRaw <
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                {
+                    return null;
+                }
+
+                var user = new LazerContext().Users.First(u => u.Id == Convert.ToInt32(Encoding.UTF8.GetString(cachedUserId)));
+
+                Users.TryAdd(token, user);
+                return null;
+            }
+        }
+
+        return u;
+    }
+  
     public async Task<int> GetUserRank(int userId, int ruleSetId, bool forceFetch = false)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;
@@ -367,20 +510,7 @@ public class UserStorage : IUserStorage, IServiceScope
         Updates[userId] = new List<Update>();
     }
 
-
-    public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
-    {
-        var leaderboardUtils = new LeaderboardUtils(this);
-        return ruleset switch
-        {
-            0 => await leaderboardUtils.GetLeaderboardForOsu(),
-            1 => await leaderboardUtils.GetLeaderboardForTaiko(),
-            2 => await leaderboardUtils.GetLeaderboardForFruits(),
-            3 => await leaderboardUtils.GetLeaderboardForMania()
-        };
-    }
-
-    
+    #endregion
     private async Task<int?> GetCachedInt(string key)
     {
         var cache = ServiceProvider.GetService<IDistributedCache>()!;

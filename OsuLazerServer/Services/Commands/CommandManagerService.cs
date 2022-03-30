@@ -35,12 +35,13 @@ public class CommandManagerService : ICommandManager, IServiceScope
             cmd = new()
             {
                 AdminRequired = attr.AdminRequired,
-                Action = new Func<List<string>, string>((list) =>
+                Action = (list) =>
                 {
                     return method.Invoke(Commands, list.ToArray()).ToString();
-                }),
+                },
                 Description = attr.Description,
-                Name = attr.Command
+                Name = attr.Command,
+                RequiredArguments = attr.RequiredArgs
             };
             
             CommandCache.Add(cmdString, cmd);

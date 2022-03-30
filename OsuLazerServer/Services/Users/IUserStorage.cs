@@ -25,20 +25,31 @@ public interface IUserStorage
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; }
     public Dictionary<int, PlaylistItem> PlaylistItems { get; set; }
 
-    public Task NotifyUser(int userId, string message);
-    public Task AddUpdate(int userId, Update update);
-    public Task<List<Update>> GetUpdatesForUser(int userId);
+    #region Channels
+    public Task SendMessageToUser(User user, string message, bool isAction);
+    public Task ForceJoinChannel(int userId, int channelId);
+    public Channel GetChannel(int channelId, bool forceFetch = false);
     public Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
-    public Task ForceJoinChannel(int id, int channelId);
+    public Task SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false);
+    #endregion
+    
+    #region Leaderboard 
     User GetUser(string token);
-
     public Task<int> GetUserRank(int userId, int mode, bool forceFetch = false);
-
     public Task<double> GetUserPerformancePoints(int userId, int mode, bool forceFetch = false);
     public Task<double> GetUserHitAccuracy(int userId, int mode, bool forceFetch = false);
     public Task<double> UpdateRankings(string mode);
     public Task<double> UpdatePerformance(string mode, int userId, double peromance);
     public Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset);
     public Task<double> UpdateHitAccuracy(string mode, int userId, double accuracy);
+    #endregion
+
+    #region Updates
+    public Task NotifyUser(int userId, string message);
+    public Task AddUpdate(int userId, Update update);
+    public Task<List<Update>> GetUpdatesForUser(int userId);
     public Task ClearUpdatesForUser(int userId);
+    #endregion
+
+
 }

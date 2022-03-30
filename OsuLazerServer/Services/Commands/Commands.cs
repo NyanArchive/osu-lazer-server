@@ -26,7 +26,7 @@ public class Commands
         Provider = provider;
     }
     [Command("recalculate", "Recalculate user perfomance", -1, true)]
-    public string GetHelp()
+    public string GetHelp(CommandContext ctx)
     {
         var context = new LazerContext();
         Task.Run(async () =>
@@ -198,7 +198,7 @@ public class Commands
     }
 
     [Command("reset", "Reset user's country.", 1, true)]
-    public string ResetUserCountry(string username)
+    public string ResetUserCountry(CommandContext ctx, string username)
     {
         var context = new LazerContext();
 
@@ -217,7 +217,7 @@ public class Commands
     }
 
     [Command("ban", "Ban a user", -1, true)]
-    public string BanUser(string username)
+    public string BanUser(CommandContext ctx, string username)
     {
         var context = new LazerContext();
         var storage = Provider.GetService<IUserStorage>();
@@ -238,10 +238,19 @@ public class Commands
         storage.UpdateRankings("taiko");
         storage.UpdateRankings("mania");
         storage.UpdateRankings("fruits");
-        
-        
-
 
         return $"{user.Username} has been {(user.Banned ? "banned" : "unbanned")}";
+    }
+    
+    [Command("roll", "Roll a dice", 0, false, true)]
+    public string RollDice(CommandContext ctx, string rawNumber = "100")
+    { 
+        var number = Convert.ToInt32(rawNumber);
+        if (number <= 0)
+            number = 100;
+        
+        var result = new Random().Next(1, number);
+
+        return $"{ctx.User.Username} rolled {result}";
     }
 }
