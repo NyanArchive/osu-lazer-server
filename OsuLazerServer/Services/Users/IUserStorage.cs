@@ -40,4 +40,5 @@ public interface IUserStorage
     public Task<double> UpdatePerformance(string mode, int userId, double peromance);
     public Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset);
     public Task<double> UpdateHitAccuracy(string mode, int userId, double accuracy);
+    public Task ClearUpdatesForUser(int userId);
 }

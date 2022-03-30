@@ -362,6 +362,11 @@ public class UserStorage : IUserStorage, IServiceScope
         return currentAccuracy;
     }
 
+    public async Task ClearUpdatesForUser(int userId)
+    {
+        Updates[userId] = new List<Update>();
+    }
+
 
     public async Task<Dictionary<int, IUserStats>> GetLeaderboard(int ruleset)
     {

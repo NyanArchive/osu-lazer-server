@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using BackgroundQueue;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OsuLazerServer.Attributes;
@@ -21,12 +22,14 @@ public class ChannelsController : Controller
     private IUserStorage _storage;
     private LazerContext _context;
     private ICommandManager _commands;
+    private IBackgroundTaskQueue _queue;
 
-    public ChannelsController(IUserStorage storage, LazerContext context, ICommandManager manager)
+    public ChannelsController(IUserStorage storage, LazerContext context, ICommandManager manager, IBackgroundTaskQueue queue)
     {
         _storage = storage;
         _context = context;
         _commands = manager;
+        _queue = queue;
     }
 
     [HttpGet("channels")]
@@ -55,7 +58,11 @@ public class ChannelsController : Controller
         
         
         var updates = await _storage.GetUpdatesForUser(user.Id);
-
+        _queue.Enqueue(async (e) =>
+        {
+            await Task.Delay(250);
+            await _storage.ClearUpdatesForUser(user.Id);
+        });
         return Json(new Update
         {
             Channels = updates.Where(c => c.UpdateRecievedAt.ToUnixTimeSeconds() > since).SelectMany(c => c.Channels??new List<Channel>()).ToList(),
