@@ -1,18 +1,9 @@
 stages:
-  - replace_ports
   - submodules
   - build
   - deploy
   - notification
 
-
-replace:
-  stage: replace_ports
-  script:
-    - sed -i 's/80:80/32080:80/' docker-compose.yml
-    - sed -i 's/443:443/32443:443/' docker-compose.yml
-    - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
-    - cat docker-compose.yml
 
 update-submodules:
   stage: submodules
@@ -28,6 +19,9 @@ build:
 deploy:
   stage: deploy
   script:
+    - sed -i 's/80:80/32080:80/' docker-compose.yml
+    - sed -i 's/443:443/32443:443/' docker-compose.yml
+    - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
     - docker-compose up -d
 
 alert-success:
