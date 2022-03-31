@@ -11,6 +11,7 @@ replace:
   script:
     - sed -i 's/80:80/32080/' docker-compose.yml
     - sed -i 's/443:443/32443/' docker-compose.yml
+    - sed -i 's/5432:5432/5433:5432' docker-compose.yml
 
 update-submodules:
   stage: submodules
@@ -40,5 +41,5 @@ alert-failed:
   script:
     - wget https://raw.githubusercontent.com/DiscordHooks/gitlab-ci-discord-webhook/master/send.sh
     - chmod +x send.sh
-    - ./send.sh success $WEBHOOK_URL
+    - ./send.sh failure $WEBHOOK_URL
   when: on_failure 
