@@ -6,8 +6,8 @@ stages:
 replace:
   stage: replace_ports
   script:
-    - sed -i 's/80:80/32080' docker-compose.yml
-    - sed -i 's/443:443/32443' docker-compose.yml
+    - sed -i 's/80:80/32080/' docker-compose.yml
+    - sed -i 's/443:443/32443/' docker-compose.yml
 
 
 build-job:
