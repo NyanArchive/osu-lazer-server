@@ -1,7 +1,8 @@
 stages:
   - replace_ports
   - build
-
+variables:
+  - DOCKER_HOST: "/var/run/docker.sock"
 
 replace:
   stage: replace_ports
