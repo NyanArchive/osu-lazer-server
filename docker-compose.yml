@@ -38,9 +38,13 @@ services:
     image: redis:7.0-rc2
     networks:
       - lazer
+    volumes:
+      pgdata:/var/lib/postgresql/data
     
   
 
 networks:
   lazer:
     driver: bridge
+volumes: 
+    pgdata: {}
