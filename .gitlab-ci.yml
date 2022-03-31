@@ -2,6 +2,8 @@ stages:
   - replace_ports
   - submodules
   - build
+  - deploy
+  - notification
 
 
 replace:
