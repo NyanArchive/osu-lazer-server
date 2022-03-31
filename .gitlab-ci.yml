@@ -6,4 +6,4 @@ build-job:
   stage: build
 
   script:
-    - docker-compose build
+    - echo "build"
