@@ -1,0 +1,60 @@
+stages:
+  - backup
+  - submodules
+  - build
+  - deploy
+  - notification
+
+
+update-submodules:
+  stage: submodules
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - git submodule init
+    - git submodule update
+
+build:
+  stage: build
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    
+  script:
+    - docker-compose build
+deploy:
+  stage: deploy
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  
+  script:
+    - sed -i 's/80:80/32080:80/' docker-compose.yml
+    - sed -i 's/443:443/32443:443/' docker-compose.yml
+    - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
+    - docker-compose up -d
+
+alert-success:
+  stage: notification
+  script:
+    - wget https://raw.githubusercontent.com/DiscordHooks/gitlab-ci-discord-webhook/master/send.sh
+    - chmod +x send.sh
+    - ./send.sh success $WEBHOOK_URL
+  when: on_success 
+alert-failed:
+  stage: notification
+  script:
+    - wget https://raw.githubusercontent.com/DiscordHooks/gitlab-ci-discord-webhook/master/send.sh
+    - chmod +x send.sh
+    - ./send.sh failure $WEBHOOK_URL
+  when: on_failure 
+
+create-backup-task:
+  stage: backup
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script: 
+    - export FILENAME=backup-$(date '+%Y-%m-%d.%h%m').gz
+    - docker exec -u postgres -t lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
+    - gzip -c lazer.sql > $FILENAME
+    - curl -F "file=@./$FILENAME" -F "content=Backup for $(date)" $WEBHOOK_URL > null
