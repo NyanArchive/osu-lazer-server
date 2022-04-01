@@ -56,7 +56,7 @@ public class BeatmapsController : Controller
         if (beatmap is null)
             return NotFound();
 
-        return Json(beatmap.ToOsu());
+        return Json(await beatmap.ToOsu());
     }
     
     [HttpGet("/api/v2/beatmapsets/lookup")]
@@ -85,9 +85,12 @@ public class BeatmapsController : Controller
         
         var beatmap = await _resolver.FetchBeatmap(beatmapId);
 
-        var rulesetId = (RulesetId) Enum.Parse(typeof(RulesetId), string.Concat(mode[0].ToString().ToUpper(), mode.AsSpan(1)));
+        if (beatmap is null)
+            return NotFound(new { error = "" });
+
+        var rulesetId = ModeUtils.RuleSetId(mode);
         
-        var scores = _storage.LeaderboardCache.ContainsKey(beatmap.Id) ? _storage.LeaderboardCache[beatmap.Id] : _context.Scores.AsEnumerable().Where(score => score.BeatmapId == beatmapId && score.Passed && score.RuleSetId == (int) rulesetId && score.Status == DbScoreStatus.BEST);
+        var scores = _storage.LeaderboardCache.ContainsKey(beatmap.Id) ? _storage.LeaderboardCache[beatmap.Id] : _context.Scores.AsEnumerable().Where(score => score.BeatmapId == beatmapId && score.Passed && score.RuleSetId == rulesetId && score.Status == DbScoreStatus.BEST);
 
         _storage.LeaderboardCache.TryAdd(beatmap.Id, scores.ToList());
         DbScore[] dbScores;

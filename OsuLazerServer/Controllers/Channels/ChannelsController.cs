@@ -53,19 +53,24 @@ public class ChannelsController : Controller
     public async Task<IActionResult> GetUpdates([FromQuery(Name = "since")] long since)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
-
-
+        
         var updates = await _storage.GetUpdatesForUser(user.Id);
-        _queue.Enqueue(async (e) =>
-        {
-            await Task.Delay(250);
-            await _storage.ClearUpdatesForUser(user.Id);
-        });
+        if (since == 0)
+            return Json(new Update
+            {
+                Channels = updates.SelectMany(c => c.Channels ?? new List<Channel>()).ToList(),
+                Messages = updates.SelectMany(c => c.Messages)
+                    .ToList()
+            });
+
+        var channelUpdates = updates.Where(c => !c.IsRead).SelectMany(c => c.Channels ?? new List<Channel>()).ToList();
+        var messageUpdates = updates.Where(c => !c.IsRead).SelectMany(c => c.Messages).ToList();
+        await _storage.ClearUpdatesForUser(user.Id);
+        
         return Json(new Update
         {
-            Channels = updates.SelectMany(c => c.Channels ?? new List<Channel>()).ToList(),
-            Messages = updates.SelectMany(c => c.Messages)
-                .ToList()
+            Channels = channelUpdates,
+            Messages = messageUpdates
         });
     }
 
@@ -137,69 +142,39 @@ public class ChannelsController : Controller
             return BadRequest();
 
 
-        foreach (var uId in channel.Users.Where(c => c != user.Id))
+        var sender = new Sender
         {
-            var message = new Message
-            {
-                Content = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(body.Message)),
-                Sender = new Sender
-                {
-                    Id = user.Id,
-                    Username = user.Username,
-                    AvatarUrl =
-                        "https://media.discordapp.net/attachments/951904126164410388/953323388867334194/IMG_20220302_194306_647-removebg-preview.png",
-                    CountryCode = user.Country,
-                    DefaultGroup = "user",
-                    IsActive = false,
-                    IsBot = false,
-                    IsDeleted = false,
-                    IsOnline = true,
-                    IsSupporter = false,
-                    LastVisit = DateTime.Now,
-                    ProfileColour = null,
-                    PmFriendsOnly = false
-                },
-                Timetamp = DateTime.Now,
-                ChannelId = channel.ChannelId,
-                MessageId = channel.Messages.Count + 1,
-                SenderId = user.Id
-            };
-            _storage.Channels[channel.ChannelId].Messages.Add(message);
-            await _storage.AddUpdate(uId, new Update
-            {
-                Channels = new List<Channel> {channel},
-                Messages = new List<Message> {message}
-            });
-        }
-
+            Id = user.Id,
+            Username = user.Username,
+            AvatarUrl =
+                "https://media.discordapp.net/attachments/951904126164410388/953323388867334194/IMG_20220302_194306_647-removebg-preview.png",
+            CountryCode = user.Country,
+            DefaultGroup = "user",
+            IsActive = false,
+            IsBot = false,
+            IsDeleted = false,
+            IsOnline = true,
+            IsSupporter = false,
+            LastVisit = DateTime.Now,
+            ProfileColour = null,
+        };
+        var channelMessage = await _storage.SendMessageToChannel(sender, channel, body.Message, body.IsAction);
+        
+        
         if (body.Message.StartsWith("!"))
         {
             var command = _commands.GetCommandByName(body.Message);
 
             if (command is null)
             {
-                return Json(new Message
-                {
-                    Content = "Command not found.",
-                    Sender = UserStorage.SystemSender,
-                    Timetamp = DateTime.Now,
-                    ChannelId = channel.ChannelId,
-                    MessageId = channel.Messages.Count + 1,
-                    SenderId = UserStorage.SystemSender.Id
-                });
+                await _storage.SendMessageToChannel(UserStorage.SystemSender, channel, "Command not found.", false);
+                return Json(channelMessage);
             }
 
             if (command.AdminRequired && !user.IsAdmin)
             {
-                return Json(new Message
-                {
-                    Content = "No permissions.",
-                    Sender = UserStorage.SystemSender,
-                    Timetamp = DateTime.Now,
-                    ChannelId = channel.ChannelId,
-                    MessageId = channel.Messages.Count + 1,
-                    SenderId = UserStorage.SystemSender.Id
-                });
+                await _storage.SendMessageToChannel(UserStorage.SystemSender, channel, "No permissions.", false);
+                return Json(channelMessage);
             }
 
             try
@@ -225,44 +200,12 @@ public class ChannelsController : Controller
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
-                return Json(new Message
-                {
-                    Content = e.Message + "(stack trace in console)",
-                    Sender = UserStorage.SystemSender,
-                    Timetamp = DateTime.Now,
-                    ChannelId = channel.ChannelId,
-                    MessageId = channel.Messages.Count + 2,
-                    SenderId = UserStorage.SystemSender.Id
-                });
+                await _storage.SendMessageToChannel(UserStorage.SystemSender, channel, e.Message, false);
+                return Json(channelMessage);
             }
         }
 
-        return Json(new Message
-        {
-            Content = body.Message,
-            Sender = new Sender
-            {
-                Id = user.Id,
-                Username = user.Username,
-                AvatarUrl =
-                    "https://media.discordapp.net/attachments/951904126164410388/953323388867334194/IMG_20220302_194306_647-removebg-preview.png",
-                CountryCode = user.Country,
-                DefaultGroup = "user",
-                IsActive = true,
-                IsBot = false,
-                IsDeleted = false,
-                IsOnline = true,
-                IsSupporter = true,
-                LastVisit = DateTime.Now,
-                ProfileColour = null,
-                PmFriendsOnly = false
-            },
-            Timetamp = DateTime.Now,
-            ChannelId = channel.ChannelId,
-            MessageId = channel.Messages.Count + 1,
-            SenderId = user.Id
-        });
+        return Json(channelMessage);
     }
 
     [HttpPost("channels")]

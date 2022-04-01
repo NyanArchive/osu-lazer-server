@@ -39,16 +39,8 @@ public class CommentsController : Controller
                 Id = 1,
                 CreatedAt = DateTime.Today
             },
-            Meta = new[]
+            Meta = new APICommentableMeta[]
             {
-                new APICommentableMeta
-                {
-                    Id = 1,
-                    Title = "Meta for comments...",
-                    Type = "beatmapset",
-                    Url = "https://google.com",
-                
-                }
             }
         });
     }

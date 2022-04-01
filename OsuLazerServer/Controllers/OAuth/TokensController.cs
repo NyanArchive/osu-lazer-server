@@ -126,7 +126,7 @@ public class TokensController : Controller
 
             };
         
-            channel.Messages.Add(new Message { Content = "Welcome to lazer server!\nDiscord server: https://discord.gg/aqZtXm8zcG\nGit: https://git.dhcpcd.xyz/dhcpcd9/osu-lazer-server\n(DM me in Discord to create account on git server.) ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
+            channel.Messages.Add(new Message { Content = "Welcome to osu!lazer server!\nDiscord server: https://discord.gg/aqZtXm8zcG\nGit: https://git.kotworks.cyou/DHCPCP/osu-lazer-server\nYou can close this channel, you are not able to write here. ", Sender = UserStorage.SystemSender, Timetamp = DateTime.Now, ChannelId = 99912, MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000, SenderId = UserStorage.SystemSender.Id });
             await _storage.AddUpdate(user.Id, new Update
             {
                 Channels = new List<Channel>() { channel },

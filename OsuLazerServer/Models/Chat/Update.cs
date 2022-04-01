@@ -12,6 +12,8 @@ public class Update
     public List<Channel>? Channels { get; set; }
 
     [JsonPropertyName("messages")] public List<Message> Messages { get; set; }
+
+    [JsonIgnore] public bool IsRead { get; set; } = false;
 }
 
 public class Message

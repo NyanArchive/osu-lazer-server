@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -26,7 +27,7 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; } = new();
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; } = new();
     public Dictionary<int, Room> Rooms { get; set; } = new();
-    public Dictionary<int, List<Update>> Updates { get; set; } = new();
+    public ConcurrentDictionary<int, List<Update>> Updates { get; set; } = new();
     public Dictionary<int, Channel> Channels { get; set; } = new();
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; } = new();
@@ -59,39 +60,33 @@ public class UserStorage : IUserStorage, IServiceScope
 
     #region Channels
 
-    public async Task SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false)
+    public async Task<Message> SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false)
     {
         var messageChannel = Channels[channel.ChannelId];
-        messageChannel.Messages.Add(new Message
+        var channelMessage = new Message
         {
             ChannelId = channel.ChannelId,
             Sender = sender,
             Content = message,
             Timetamp = DateTime.Now,
-            MessageId = channel.Messages.Count + 2,
+            MessageId = channel.Messages.Max(c => c.MessageId) + 1,
             SenderId = sender.Id
-        });
+        };
+        Channels[channel.ChannelId].Messages.Add(channelMessage);
 
-        foreach (var uId in messageChannel.Users)
+        foreach (var uId in messageChannel.Users.Where(c => c != sender.Id))
         {
             await AddUpdate(uId, new Update
             {
-                Channels = new List<Channel>(),
+                Channels = new List<Channel>( ),
                 Messages = new List<Message>
                 {
-                    new Message
-                    {
-                        ChannelId = channel.ChannelId,
-                        Sender = sender,
-                        Content = message,
-                        Timetamp = DateTime.Now,
-                        MessageId = channel.Messages.Count + 2,
-                        SenderId = sender.Id
-                    }
+                    channelMessage
                 }
             });
         }
-        
+
+        return channelMessage;
     }
     public async Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false)
     {
@@ -212,17 +207,26 @@ public class UserStorage : IUserStorage, IServiceScope
     {
         if (!Updates.TryGetValue(userId, out var updates))
         {
-            Updates.Add(userId, new List<Update> { update });
+            Updates.AddOrUpdate(userId, new List<Update> {update}, (k, v) =>
+            {
+                update.IsRead = false;
+                v.Add(update);
+                return v;
+            });
             return;
         }
         update.UpdateRecievedAt = DateTimeOffset.Now;
+        update.IsRead = false;
         updates.Add(update);
     }
     public async Task<List<Update>> GetUpdatesForUser(int userId)
     {
         if (!Updates.TryGetValue(userId, out var updates))
         {
-            Updates.Add(userId, new List<Update>());
+            Updates.AddOrUpdate(userId, new List<Update>(), (k, v) =>
+            {
+                return v;
+            });
             return Updates[userId];
         }
         
@@ -507,7 +511,11 @@ public class UserStorage : IUserStorage, IServiceScope
 
     public async Task ClearUpdatesForUser(int userId)
     {
-        Updates[userId] = new List<Update>();
+        Updates[userId] = Updates[userId].Select(c =>
+        {
+            c.IsRead = true;
+            return c;
+        }).ToList();
     }
 
     #endregion

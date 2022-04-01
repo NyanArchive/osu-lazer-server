@@ -44,6 +44,13 @@ public class UsersController : Controller
     {
         return await FetchUser(id, key, "osu");
     }
+    
+    [HttpGet("/api/v2/users/{id}/recent_activiy")]
+    [RequiredLazerClient]
+    public async Task<IActionResult> FetchUserRecentActivity([FromRoute(Name = "id")] string id, [FromQuery(Name = "key")] string key)
+    {
+        return Json(new List<object>());
+    }
 
 
     [HttpGet("/api/v2/users/{id}/{mode}")]

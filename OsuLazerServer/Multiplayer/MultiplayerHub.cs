@@ -170,7 +170,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
                                 Sender = UserStorage.SystemSender,
                                 Timetamp = DateTime.Now,
                                 ChannelId = channel.ChannelId,
-                                MessageId = (int) DateTimeOffset.Now.ToUnixTimeSeconds() / 1000,
+                                MessageId = channel.Messages.Count + 1,
                                 SenderId = UserStorage.SystemSender.Id
                             }
                         }

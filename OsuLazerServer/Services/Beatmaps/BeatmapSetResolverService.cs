@@ -19,19 +19,21 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
     }
     public async Task<List<BeatmapSet?>> FetchSets(string query, int mode, int offset, bool nsfw, string status = "any")
     {
-        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0&ps=300");
+        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
 
         if (!request.IsSuccessStatusCode)
             return null;
         var body = JsonSerializer.Deserialize<List<BeatmapSet>>(await request.Content.ReadAsStringAsync());
-
-
-        foreach (var map in body)
-        {
-            if (!BeatmapsCache.ContainsKey(map.Id))
-                BeatmapsCache.Add(map.Id, map);
-        }
         
+        var background = Scope.ServiceProvider.GetService<IBackgroundTaskQueue>();
+        background.Enqueue(async (c) =>
+        {
+            foreach (var map in body)
+            {
+                BeatmapsCache.TryAdd(map.Id, map);
+            }
+        });
+
         return body;
     }
 
@@ -43,7 +45,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
                 return value;
         } 
         
-        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmapset/{setId}");
+        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmapset/{setId}");
 
         var body = JsonSerializer.Deserialize<BeatmapSet>(await request.Content.ReadAsStringAsync());
         if (body is not null)
@@ -57,7 +59,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         return body;
     }
 
-    public async Task<Beatmap> FetchBeatmap(int beatmapId)
+    public async Task<Beatmap?> FetchBeatmap(int beatmapId)
     {
         if (BeatmapsCache.TryGetValue(beatmapId, out var beatmap))
         {
@@ -65,8 +67,11 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
                 return value;
         }
 
-        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmap/{beatmapId}");
+        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmap/{beatmapId}");
 
+        
+        if (!request.IsSuccessStatusCode)
+            return null;
         var body = JsonSerializer.Deserialize<Beatmap>(await request.Content.ReadAsStringAsync());
         
         if (body is not null)

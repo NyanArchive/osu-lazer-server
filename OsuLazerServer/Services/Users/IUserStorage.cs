@@ -1,4 +1,5 @@
-﻿using osu.Game.Online.Multiplayer;
+﻿using System.Collections.Concurrent;
+using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Spectator;
 using osu.Game.Scoring;
 using OsuLazerServer.Database;
@@ -19,7 +20,7 @@ public interface IUserStorage
     public Dictionary<int, List<DbScore>> LeaderboardCache { get; set; }
     public Dictionary<string, List<User>> GlobalLeaderboardCache { get; set; }
     public Dictionary<int, Room> Rooms { get; set; }
-    public Dictionary<int, List<Update>> Updates { get; set; }
+    public ConcurrentDictionary<int, List<Update>> Updates { get; set; }
     public Dictionary<int, Channel> Channels { get; set; }
     public Dictionary<int, SpectatorState> UserStates { get; set; }
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; }
@@ -30,7 +31,7 @@ public interface IUserStorage
     public Task ForceJoinChannel(int userId, int channelId);
     public Channel GetChannel(int channelId, bool forceFetch = false);
     public Task<Channel?> GetChannelAsync(int channelId, LazerContext context, bool forceFetch = false);
-    public Task SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false);
+    public Task<Message> SendMessageToChannel(Sender sender, Channel channel, string message, bool isAction = false);
     #endregion
     
     #region Leaderboard 
