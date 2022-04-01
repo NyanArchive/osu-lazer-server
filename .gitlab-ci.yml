@@ -38,3 +38,13 @@ alert-failed:
     - chmod +x send.sh
     - ./send.sh failure $WEBHOOK_URL
   when: on_failure 
+
+create-backup-task:
+  only:
+    — schedules
+
+  script: 
+    - export FILENAME=backup-$(date '+%Y-%m-%d.%h%m').gz
+    - docker exec -u postgres -it posstgres lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
+    - gzip -c lazer.sql > $FILENAME
+    - curl -F "file=@./$FILENAME" -F "content=Backup for $(date)" $WEBHOOK_URL 
