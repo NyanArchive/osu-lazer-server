@@ -55,6 +55,6 @@ create-backup-task:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script: 
     - export FILENAME=backup-$(date '+%Y-%m-%d.%h%m').gz
-    - docker exec -u postgres -it posstgres lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
+    - docker exec -u postgres -it lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
     - gzip -c lazer.sql > $FILENAME
     - curl -F "file=@./$FILENAME" -F "content=Backup for $(date)" $WEBHOOK_URL 
