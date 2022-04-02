@@ -10,6 +10,7 @@ using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Users;
 using OsuLazerServer.Models.Spectator;
 using OsuLazerServer.Services.Beatmaps;
+using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 using Realms;
@@ -26,14 +27,15 @@ public class UsersController : Controller
     private LazerContext _context;
     private IUserStorage _storage;
     private IBeatmapSetResolver _resolver;
+    private IRulesetManager _rulesetManager;
 
-    public UsersController(LazerContext context, ITokensService tokensService, IUserStorage storage,
-        IBeatmapSetResolver resolver)
+    public UsersController(LazerContext context, ITokensService tokensService, IUserStorage storage, IBeatmapSetResolver resolver, IRulesetManager rulesetManager)
     {
         _tokensService = tokensService;
         _context = context;
         _storage = storage;
         _resolver = resolver;
+        _rulesetManager = rulesetManager;
     }
 
 
@@ -140,6 +142,8 @@ public class UsersController : Controller
             StatsTaiko = new UsersStatsTaiko(),
             JoinedAt = DateTime.UtcNow
         };
+
+
 
         await _context.Users.AddAsync(newUser);
 

@@ -12,8 +12,10 @@ public class LazerContext : DbContext
     public DbSet<UsersStatsTaiko> TaikoStats { get; set; }
     public DbSet<UsersStatsFruits> FruitsStats { get; set; }
     public DbSet<UsersStatsMania> ManiaStats { get; set; }
+    public DbSet<RuleSetStats> RuleSetStats { get; set; }
     public DbSet<DbScore> Scores { get;set; }
     public DbSet<Channel> Channels { get; set; }
+
 
     public LazerContext()
     {

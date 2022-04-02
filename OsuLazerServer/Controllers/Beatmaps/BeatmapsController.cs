@@ -8,18 +8,15 @@ using Microsoft.EntityFrameworkCore;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Rulesets;
-using osu.Game.Rulesets.Catch;
-using osu.Game.Rulesets.Mania;
-using osu.Game.Rulesets.Osu;
-using osu.Game.Rulesets.Taiko;
 using osu.Game.Scoring;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
+using OsuLazerServer.Database.Tables;
 using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models.Response.Scores;
 using OsuLazerServer.Models.Score;
 using OsuLazerServer.Services.Beatmaps;
+using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 using UniqueIdGenerator.Net;
@@ -38,13 +35,15 @@ public class BeatmapsController : Controller
     private IBeatmapSetResolver _resolver;
     private IUserStorage _storage;
     private IBackgroundTaskQueue _taskQueue;
+    private IRulesetManager _rulesetManager;
 
-    public BeatmapsController(LazerContext context, IBeatmapSetResolver resolver, IUserStorage storage, IBackgroundTaskQueue taskQueue)
+    public BeatmapsController(LazerContext context, IBeatmapSetResolver resolver, IUserStorage storage, IBackgroundTaskQueue taskQueue, IRulesetManager rulesetManager)
     {
         _context = context;
         _resolver = resolver;
         _storage = storage;
         _taskQueue = taskQueue;
+        _rulesetManager = rulesetManager;
     }
 
     [HttpGet("/api/v2/beatmaps/lookup")]
@@ -88,7 +87,7 @@ public class BeatmapsController : Controller
         if (beatmap is null)
             return NotFound(new { error = "" });
 
-        var rulesetId = ModeUtils.RuleSetId(mode);
+        var rulesetId = (await _rulesetManager.GetRulesetByName(mode)).RulesetInfo.OnlineID;
         
         var scores = _storage.LeaderboardCache.ContainsKey(beatmap.Id) ? _storage.LeaderboardCache[beatmap.Id] : _context.Scores.AsEnumerable().Where(score => score.BeatmapId == beatmapId && score.Passed && score.RuleSetId == rulesetId && score.Status == DbScoreStatus.BEST);
 
@@ -148,14 +147,7 @@ public class BeatmapsController : Controller
 
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
-        var ruleset = (RulesetId)body.RulesetId switch
-        {
-            RulesetId.Osu => new OsuRuleset().RulesetInfo,
-            RulesetId.Taiko => new TaikoRuleset().RulesetInfo,
-            RulesetId.Fruits => new CatchRuleset().RulesetInfo,
-            RulesetId.Mania => new ManiaRuleset().RulesetInfo,
-            _ => new OsuRuleset().RulesetInfo,
-        };
+        var ruleset = _rulesetManager.GetRuleset(body.RulesetId).RulesetInfo;
 
         var mirrorBeatmap = await (await _resolver.FetchBeatmap(beatmapId)).ToOsu();
         var beatmapStream = await BeatmapUtils.GetBeatmapStream(beatmapId);
@@ -210,7 +202,18 @@ public class BeatmapsController : Controller
 
 
         dbUser.PlayCount++;
-        var stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
+
+        IUserStats stats;
+
+        if (ruleset.OnlineID > 3)
+        {
+            stats = await user.FetchRulesetStats(ruleset);
+        }
+        else
+        {
+            stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
+        }
+
         
 
         if (score.MaxCombo > stats.MaxCombo)
@@ -336,14 +339,7 @@ public class BeatmapsController : Controller
 
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
-        var ruleset = (RulesetId)body.RulesetId switch
-        {
-            RulesetId.Osu => new OsuRuleset().RulesetInfo,
-            RulesetId.Taiko => new TaikoRuleset().RulesetInfo,
-            RulesetId.Fruits => new CatchRuleset().RulesetInfo,
-            RulesetId.Mania => new ManiaRuleset().RulesetInfo,
-            _ => new OsuRuleset().RulesetInfo,
-        };
+        var ruleset = _rulesetManager.GetRuleset(body.RulesetId).RulesetInfo;
 
         var mirrorBeatmap = await (await _resolver.FetchBeatmap(item.BeatmapId)).ToOsu();
         var beatmapStream = await BeatmapUtils.GetBeatmapStream(item.BeatmapId);

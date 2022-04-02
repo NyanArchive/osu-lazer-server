@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Nager.Country;
+using osu.Game.Rulesets;
 using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Users;
@@ -163,5 +164,39 @@ public class User
                 "recent_activity"
             }
         };
+    }
+
+    public async Task<IUserStats> FetchRulesetStats(RulesetInfo ruleset)
+    {
+        var context = new LazerContext();
+        
+        var stats = context.RuleSetStats.FirstOrDefault(c => c.UserId == Id && c.RulesetId == ruleset.OnlineID);
+        if (stats is null)
+        {
+            stats = new RuleSetStats
+            {
+                RulesetId = ruleset.OnlineID,
+                RulesetName = ruleset.Name,
+                UserId = Id,
+            };
+            stats.SetUserStats(new UsersStatsOsu
+            {
+                Accuracy = 1,
+                Level = 0,
+                LevelProgress = 0,
+                MaxCombo = 0,
+                PerformancePoints = 0,
+                RankedScore = 0,
+                TotalHits = 0,
+                TotalScore = 0
+            });
+
+            await context.RuleSetStats.AddAsync(stats);
+            await context.SaveChangesAsync();
+            
+            return await FetchRulesetStats(ruleset);
+        }
+        
+        return stats.GetRulesetStats();
     }
 }

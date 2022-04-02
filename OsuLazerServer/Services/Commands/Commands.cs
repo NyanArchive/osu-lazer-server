@@ -3,14 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Rulesets.Catch;
-using osu.Game.Rulesets.Mania;
-using osu.Game.Rulesets.Osu;
-using osu.Game.Rulesets.Taiko;
 using osu.Game.Scoring;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
 using OsuLazerServer.Database.Tables.Scores;
+using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
 using HitResult = osu.Game.Rulesets.Scoring.HitResult;
@@ -26,7 +23,7 @@ public class Commands
         Provider = provider;
     }
     [Command("recalculate", "Recalculate user perfomance", -1, true)]
-    public string GetHelp(CommandContext ctx)
+    public string GetHelp(CommandContext cmdCtx)
     {
         var context = new LazerContext();
         Task.Run(async () =>
@@ -94,14 +91,15 @@ public class Commands
 
 
 
-                    var ruleset = (RulesetId) score.RuleSetId switch
+                    var rulesetManager = cmdCtx.Services.ServiceProvider.GetService<IRulesetManager>();
+                    
+                    if (rulesetManager.GetRuleset(score.RuleSetId) is null)
                     {
-                        RulesetId.Osu => new OsuRuleset().RulesetInfo,
-                        RulesetId.Taiko => new TaikoRuleset().RulesetInfo,
-                        RulesetId.Fruits => new CatchRuleset().RulesetInfo,
-                        RulesetId.Mania => new ManiaRuleset().RulesetInfo,
-                        _ => new OsuRuleset().RulesetInfo,
-                    };
+                        Console.WriteLine($"{score.UserId} has no ruleset");
+                        continue;
+                    }
+
+                    var ruleset = rulesetManager.GetRuleset(score.RuleSetId).RulesetInfo;
 
                     var stats = ServerStats.FromJson(score.Statistics);
                     var beatmap = new ProcessorWorkingBeatmap(await BeatmapUtils.GetBeatmapStream(score.BeatmapId),

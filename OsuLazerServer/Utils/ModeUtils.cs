@@ -36,6 +36,18 @@ public class ModeUtils
         if (StatsCache.TryGetValue($"{id}:{mode}", out var value))
             return value;
 
+
+        var ruleset = context.RuleSetStats.FirstOrDefault(c => c.RulesetName == mode && c.UserId == id);
+
+        if (ruleset is not null)
+        {
+            StatsCache.TryAdd($"{id}:{mode}", ruleset.GetRulesetStats());
+            return ruleset.GetRulesetStats();
+        }
+        else
+        {
+        }
+
         if (mode == "osu")
         {
             var userStats = context.OsuStats.FirstOrDefault(s => s.Id == id);
@@ -57,6 +69,8 @@ public class ModeUtils
             var userStats = context.ManiaStats.FirstOrDefault(s => s.Id == id);
             StatsCache.TryAdd($"{id}:{mode}", userStats);
         }
+        
+
         var statsOsu = context.OsuStats.FirstOrDefault(s => s.Id == id);
         StatsCache.TryAdd($"{id}:{mode}", statsOsu);
         return statsOsu;

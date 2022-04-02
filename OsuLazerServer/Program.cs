@@ -5,6 +5,7 @@ using OsuLazerServer.Database;
 using OsuLazerServer.Multiplayer;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Commands;
+using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Services.Wiki;
 using OsuLazerServer.SpectatorClient;
@@ -42,6 +43,7 @@ builder.Services.AddSingleton<IUserStorage, UserStorage>();
 builder.Services.AddSingleton<IBeatmapSetResolver, BeatmapSetResolverService>();
 builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
 builder.Services.AddSingleton<ICommandManager, CommandManagerService>();
+builder.Services.AddSingleton<IRulesetManager, RulesetManager>();
 builder.Services.AddBackgroundTaskQueue();
 builder.Services.AddBackgroundResultQueue();
 
@@ -65,4 +67,11 @@ app.UseEndpoints(endpoints =>
     endpoints.MapHub<MultiplayerHub>("/multiplayer");
     endpoints.MapHub<SpectatorHub>("/spectator");
 });
+Console.WriteLine("Updating legacy rulesets.");
+//Preloading rulesets
+var rulesetManager = app.Services.GetRequiredService<IRulesetManager>();
+
+await rulesetManager.UpdateLegacy();
+
+await rulesetManager.LoadRulesets(Path.Join("rulesets"));
 app.Run();

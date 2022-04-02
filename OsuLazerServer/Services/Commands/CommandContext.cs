@@ -14,6 +14,7 @@ public class CommandContext
     private IUserStorage  _userStorage;
     private int _userId;
     public ChannelModel Channel { get; set; }
+    public IServiceScope Services { get; set; }
     
     public CommandContext(string command, string[] args, int userId, int channelId, IUserStorage storage)
     {
@@ -23,6 +24,7 @@ public class CommandContext
         Args = args;
         Channel = _userStorage.GetChannel(channelId);
         User = storage.Users.Values.FirstOrDefault(x => x.Id == userId)!;
+        Services = storage.CreateServiceServiceScope();
     }
     
     public async Task Reply(string message)

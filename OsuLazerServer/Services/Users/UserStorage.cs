@@ -518,6 +518,11 @@ public class UserStorage : IUserStorage, IServiceScope
         }).ToList();
     }
 
+    public IServiceScope CreateServiceServiceScope()
+    {
+        return ServiceProvider.CreateScope();
+    }
+
     #endregion
     private async Task<int?> GetCachedInt(string key)
     {

@@ -53,4 +53,5 @@ public interface IUserStorage
     #endregion
 
 
+    public IServiceScope CreateServiceServiceScope();
 }
