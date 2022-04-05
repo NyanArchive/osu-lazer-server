@@ -24,6 +24,7 @@ build:
   script:
     - chmod +x ci/build.sh
     - ci/build.sh
+    - docker-compose build
 deploy:
   stage: deploy
 
