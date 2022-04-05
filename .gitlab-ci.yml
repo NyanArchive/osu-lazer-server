@@ -21,7 +21,8 @@ build:
     - if: $CI_PIPELINE_SOURCE == "push"
     
   script:
-    - docker-compose build
+    - chmod +x ci/build.sh
+    - ci/build.sh
 deploy:
   stage: deploy
 
