@@ -19,7 +19,7 @@ services:
     depends_on:
       - db
     volumes:
-      - /srv/lazer-server/replays:/app/replays:rw
+      - ./replays:/app/replays:rw
     networks:
       - lazer
   db:
