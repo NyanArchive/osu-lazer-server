@@ -50,3 +50,4 @@ networks:
     driver: bridge
 volumes: 
     pgdata: {}
+#

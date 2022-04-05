@@ -4,7 +4,8 @@ stages:
   - build
   - deploy
   - notification
-
+variables:
+  DOCKER_BUILDKIT: 1
 
 update-submodules:
   stage: submodules
@@ -33,6 +34,7 @@ deploy:
     - sed -i 's/80:80/32080:80/' docker-compose.yml
     - sed -i 's/443:443/32443:443/' docker-compose.yml
     - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
+    - sed -ie 's|./replays|/srv/lazer-server/replays|' docker-compose.yml  
     - docker-compose up -d
 
 alert-success:
