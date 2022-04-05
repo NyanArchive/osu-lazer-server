@@ -4,7 +4,8 @@ stages:
   - build
   - deploy
   - notification
-
+variables:
+  DOCKER_BUILDKIT: 1
 
 update-submodules:
   stage: submodules
