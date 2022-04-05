@@ -18,6 +18,8 @@ services:
       - 443:443
     depends_on:
       - db
+    volumes:
+      - ./replays:/app/replays
     networks:
       - lazer
   db:

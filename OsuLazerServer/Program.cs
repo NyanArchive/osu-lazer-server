@@ -5,6 +5,8 @@ using OsuLazerServer.Database;
 using OsuLazerServer.Multiplayer;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Commands;
+using OsuLazerServer.Services.Leaderboard;
+using OsuLazerServer.Services.Replays;
 using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Services.Wiki;
@@ -38,12 +40,16 @@ builder.Services.AddStackExchangeRedisCache(args => args.Configuration = Environ
 #else
 builder.Services.AddStackExchangeRedisCache(args => args.Configuration = "localhost:6379");
 #endif
+
 builder.Services.AddScoped<ITokensService, TokenService>();
 builder.Services.AddSingleton<IUserStorage, UserStorage>();
 builder.Services.AddSingleton<IBeatmapSetResolver, BeatmapSetResolverService>();
 builder.Services.AddScoped<IWikiResolver, WikiResolverService>();
 builder.Services.AddSingleton<ICommandManager, CommandManagerService>();
 builder.Services.AddSingleton<IRulesetManager, RulesetManager>();
+builder.Services.AddScoped<ILeaderboardManager, LeaderboardManager>();
+builder.Services.AddSingleton<IReplayManager, ReplayManager>();
+
 builder.Services.AddBackgroundTaskQueue();
 builder.Services.AddBackgroundResultQueue();
 
@@ -70,8 +76,14 @@ app.UseEndpoints(endpoints =>
 Console.WriteLine("Updating legacy rulesets.");
 //Preloading rulesets
 var rulesetManager = app.Services.GetRequiredService<IRulesetManager>();
-
+#if !DEBUG
 await rulesetManager.UpdateLegacy();
-
+#endif
 await rulesetManager.LoadRulesets(Path.Join("rulesets"));
+
+if (!Directory.Exists("replays"))
+{
+    Console.WriteLine("Directory 'replays' does not exist or not mounted. Please mount or create the directory.");
+    Environment.Exit(0);
+}
 app.Run();

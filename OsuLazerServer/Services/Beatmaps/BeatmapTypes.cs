@@ -128,7 +128,7 @@ namespace OsuLazerServer.Services.Beatmaps;
             OnlineID = Id,
             RulesetID = ModeInt,
             OnlineBeatmapSetID = BeatmapsetId,
-            BeatmapSet = resolver?.FetchSetAsync(BeatmapsetId).GetAwaiter().GetResult()?.ToBeatmapSet()
+            BeatmapSet = resolver is not null ? (await resolver?.FetchSetAsync(BeatmapsetId))?.ToBeatmapSet() : null
         };
     }
 

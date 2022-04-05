@@ -1,29 +1,24 @@
-﻿using System.Runtime.InteropServices;
-using System.Text.Json;
+﻿using System.Text.Json;
 using BackgroundQueue;
-using BackgroundQueue.Generic;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using osu.Game.Beatmaps;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
-using OsuLazerServer.Database.Tables;
 using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Models.Response.Scores;
 using OsuLazerServer.Models.Score;
 using OsuLazerServer.Services.Beatmaps;
+using OsuLazerServer.Services.Leaderboard;
 using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
 using OsuLazerServer.Utils;
-using UniqueIdGenerator.Net;
 using APIScore = OsuLazerServer.Models.Response.Scores.APIScore;
-using Beatmap = OsuLazerServer.Services.Beatmaps.Beatmap;
 using HitResult = osu.Game.Rulesets.Scoring.HitResult;
 using LazerStatus = OsuLazerServer.Models.Response.Beatmaps;
+
 
 namespace OsuLazerServer.Controllers.Beatmaps;
 
@@ -76,47 +71,27 @@ public class BeatmapsController : Controller
     
     [HttpGet("scores")]
     [RequiredLazerClient]
-    public async Task<IActionResult> GetScoresAsync([FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
+    public async Task<IActionResult> GetScoresAsync([FromServices] ILeaderboardManager manager, [FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
     {
-        
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
-
         
         var beatmap = await _resolver.FetchBeatmap(beatmapId);
-
+        
         if (beatmap is null)
-            return NotFound(new { error = "" });
-
-        var rulesetId = (await _rulesetManager.GetRulesetByName(mode)).RulesetInfo.OnlineID;
+            return NotFound(new { error = "No leaderboard found" });
         
-        var scores = _storage.LeaderboardCache.ContainsKey(beatmap.Id) ? _storage.LeaderboardCache[beatmap.Id] : _context.Scores.AsEnumerable().Where(score => score.BeatmapId == beatmapId && score.Passed && score.RuleSetId == rulesetId && score.Status == DbScoreStatus.BEST);
-
-        _storage.LeaderboardCache.TryAdd(beatmap.Id, scores.ToList());
-        DbScore[] dbScores;
-
-        if (type == "country")
-        {
-            dbScores = scores.Where(c => c.GetUser(_context).Country == user.Country).ToArray();
-        }
-        else
-        {
-            dbScores = scores.ToArray();
-        }
+        var ruleset = await _rulesetManager.GetRulesetByName(mode);
+        var leaderboardType = (BeatmapLeaderboardType) Enum.Parse(typeof(BeatmapLeaderboardType), char.ToUpper(type[0]) + type.Substring(1));
+        var leaderboard = await manager.GetBeatmapLeaderboard(beatmapId, leaderboardType, leaderboardType == BeatmapLeaderboardType.Country ? user.Country : null, ruleset.RulesetInfo);
         
-    
-
-        var userScore = dbScores.FirstOrDefault(s => s.UserId == user.Id);
+        if (leaderboard is null)
+            return NotFound(new { error = "No leaderboard found" });
+        
         return Json(new ScoresResponse
         {
-            Scores = _storage.LeaderboardCache[beatmap.Id].OrderByDescending(d => d.TotalScore).Select(c => c.ToOsuScore(_resolver).GetAwaiter().GetResult()).Take(50).ToList(),
-            UserScore = new UserScore
-            {
-                Position = dbScores.Select((s, i) => new {Item = s, Position = i}).FirstOrDefault(s => s.Item.UserId == user.Id)?.Position??null,
-                Score = userScore is not null ? await userScore.ToOsuScore() : null
-            }
+            Scores = (await Task.WhenAll(leaderboard.Select(c => c.ToOsuScore(_resolver)))).ToList(),
+            UserScore = await manager.GetUserScore(beatmapId, user.Id)
         });
-
-
     }
     
     [HttpPost("solo/scores")]
@@ -139,163 +114,14 @@ public class BeatmapsController : Controller
 
     [HttpPut("solo/scores/{submitId:int}")]
     [RequiredLazerClient]
-    public async Task<IActionResult> SubmitScoreByToken([FromRoute(Name = "submitid")] int submitionToken, [FromRoute(Name = "id")] int beatmapId, [FromBody] APIScoreBody body)
+    public async Task<IActionResult> SubmitScoreByToken([FromServices] ILeaderboardManager manager, [FromRoute(Name = "submitid")] int submitionToken, [FromRoute(Name = "id")] int beatmapId, [FromBody] APIScoreBody body)
     {
+        var score = await manager.ProcessScore(submitionToken, body, beatmapId, 0, 0);
 
-        if (!_storage.ScoreTokens.ContainsKey(submitionToken))
-            return Unauthorized();
-
-        var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
-
-        var ruleset = _rulesetManager.GetRuleset(body.RulesetId).RulesetInfo;
-
-        var mirrorBeatmap = await (await _resolver.FetchBeatmap(beatmapId)).ToOsu();
-        var beatmapStream = await BeatmapUtils.GetBeatmapStream(beatmapId);
-        var beatmap = new ProcessorWorkingBeatmap(beatmapStream, beatmapId);
+        if (score is null)
+            return BadRequest();
         
-        var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
-        double pp = 0;
-        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
-        {
-            pp = ruleset.CreateInstance().CreatePerformanceCalculator()
-                ?.Calculate(new ScoreInfo
-                {
-                    Accuracy = body.Accuracy,
-                    Combo = body.MaxCombo,
-                    MaxCombo = body.MaxCombo,
-                    User = new APIUser {Username = "owo"},
-                    Ruleset = ruleset,
-                    Date = DateTimeOffset.UtcNow,
-                    Passed = body.Passed,
-                    TotalScore = body.TotalScore,
-                    Statistics = new Dictionary<HitResult, int>()
-                    {
-                        [HitResult.Perfect] = body.Statistics.Perfect,
-                        [HitResult.Good] = body.Statistics.Goods,
-                        [HitResult.Great] = body.Statistics.Greats,
-                        [HitResult.Meh] = body.Statistics.Meh,
-                        [HitResult.Miss] = body.Statistics.Misses,
-                        [HitResult.Ok] = body.Statistics.Ok,
-                        [HitResult.None] = body.Statistics.None
-                    },
-                    HasReplay = false
-                }, beatmap).Total??0;   
-        }
-        
-        var score = new DbScore
-        {
-            Accuracy = body.Accuracy,
-            Mods = body.Mods.Select(mod => mod.Acronym).ToList(),
-            Rank = BeatmapUtils.ScoreRankFromString(body.Rank),
-            Statistics = body.Statistics.ToJson(),
-            UserId = user.Id,
-            BeatmapId = beatmapId,
-            MaxCombo = body.MaxCombo,
-            Passed = body.Passed,
-            PerfomancePoints = pp,
-            SubmittedAt = DateTimeOffset.UtcNow,
-            TotalScore = body.TotalScore,
-            RuleSetId = body.RulesetId
-        };
-
-        var entry = await _context.Scores.AddAsync(score);
-
-
-        dbUser.PlayCount++;
-
-        IUserStats stats;
-
-        if (ruleset.OnlineID > 3)
-        {
-            stats = await user.FetchRulesetStats(ruleset);
-        }
-        else
-        {
-            stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
-        }
-
-        
-
-        if (score.MaxCombo > stats.MaxCombo)
-        {
-            stats.MaxCombo = score.MaxCombo;
-        }
-
-        stats.TotalScore += score.TotalScore;
-        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked && score.Passed)
-        {
-            stats.RankedScore += score.TotalScore;
-
-            await _storage.UpdatePerformance(ruleset.ShortName, user.Id, score.PerfomancePoints);
-            
-            _taskQueue.Enqueue(async c =>
-            {
-                await _storage.UpdateRankings(ruleset.ShortName);
-            });
-         
-        }
-        else
-        {
-            stats.PerformancePoints = 0;
-        }
-
-
-        score.Status = DbScoreStatus.OUTDATED;
-        var oldScore = await _context.Scores.FirstOrDefaultAsync(b => b.BeatmapId == beatmapId && b.UserId == user.Id && b.Passed && b.Status == DbScoreStatus.BEST);
-        if (score.TotalScore > (oldScore?.TotalScore ?? 0) && score.Passed)
-        {
-            score.Status = DbScoreStatus.BEST;
-            if (oldScore is not null)
-            {
-                oldScore.Status = DbScoreStatus.OUTDATED;
-            }
-
-            if (_context.Scores.AsEnumerable().Any(c => c.UserId == user.Id && c.Passed))
-            {
-                stats.Accuracy = (float)(_context.Scores.Where(s => s.Passed && s.UserId == user.Id).Select(a => a.Accuracy * 100)
-                    .ToList().Average() / 100F);
-            }
- 
-        }
-        
-        
-        var unrankedMods = new []{"AT", "AA", "CN", "DA", "RX"};
-        
-        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
-        {
-            score.Status = DbScoreStatus.OUTDATED;
-        }
-        
-        await _context.SaveChangesAsync();
-
-        _storage.LeaderboardCache.Remove(beatmapId);
-        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
-        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
-        ModeUtils.StatsCache.Remove($"{ruleset.ShortName}:{user.Id}");
-        
-        
-
-        return Json(new APIScore
-        {
-            Accuracy = score.Accuracy,
-            Beatmap = await (await _resolver.FetchBeatmap(beatmapId))?.ToOsu()??null,
-            beatmapSet = (await _resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet.OnlineID))?.ToBeatmapSet(),
-            Date = score.SubmittedAt,
-            Rank = Enum.GetName(score.Rank),
-            Statistics = JsonSerializer.Deserialize<object>(score.Statistics) ?? new {},
-            HasReplay = false,
-            User = await user.ToOsuUser(ruleset.ShortName),
-            MaxCombo = score.MaxCombo,
-            Mods = score.Mods.Select(s => new APIMod
-            {
-                Acronym = s,
-                Settings = new Dictionary<string, object> {}
-            }).ToArray(),
-            PP = score.PerfomancePoints,
-            TotalScore = score.TotalScore,
-            OnlineID = entry.Entity.Id,
-            RulesetID = score.RuleSetId
-        });
+        return Json(score);
     }
     
     [HttpGet("/api/v2/beatmaps")]
@@ -327,155 +153,18 @@ public class BeatmapsController : Controller
     
     [HttpPut("/api/v2/rooms/{roomId:int}/playlist/{playlistItem:int}/scores/{submitionToken}")]
     [RequiredLazerClient]
-    public async Task<IActionResult> SubmitScore([FromRoute(Name = "roomId")] int roomId, [FromRoute(Name = "playlistItem")] int playlistItemId, [FromRoute(Name = "submitionToken")] int submitionToken, [FromBody] APIScoreBody body)
+    public async Task<IActionResult> SubmitScore([FromServices] ILeaderboardManager manager, [FromRoute(Name = "roomId")] int roomId, [FromRoute(Name = "playlistItem")] int playlistItemId, [FromRoute(Name = "submitionToken")] int submitionToken, [FromBody] APIScoreBody body)
     {
-        var room = _storage.Rooms[roomId];
-        var hubRoom = _storage.HubRooms[roomId];
-        var item = _storage.PlaylistItems[playlistItemId];
+        var playlistItem = _storage.PlaylistItems.Values.FirstOrDefault(p => p.ID == playlistItemId);
         
-
-        if (!_storage.ScoreTokens.ContainsKey(submitionToken))
-            return Unauthorized();
-
-        var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
-
-        var ruleset = _rulesetManager.GetRuleset(body.RulesetId).RulesetInfo;
-
-        var mirrorBeatmap = await (await _resolver.FetchBeatmap(item.BeatmapId)).ToOsu();
-        var beatmapStream = await BeatmapUtils.GetBeatmapStream(item.BeatmapId);
-        var beatmap = new ProcessorWorkingBeatmap(beatmapStream, item.BeatmapId);
+        if (playlistItem is null)
+            return BadRequest();
         
-        var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+        var score = await manager.ProcessScore(submitionToken, body, playlistItem.BeatmapId, roomId, playlistItemId);
 
-
-        double pp = 0;
-        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
-        {
-            pp = ruleset.CreateInstance().CreatePerformanceCalculator()
-                ?.Calculate(new ScoreInfo
-                {
-                    Accuracy = body.Accuracy,
-                    Combo = body.MaxCombo,
-                    MaxCombo = body.MaxCombo,
-                    User = new APIUser {Username = "owo"},
-                    Ruleset = ruleset,
-                    Date = DateTimeOffset.UtcNow,
-                    Passed = body.Passed,
-                    TotalScore = body.TotalScore,
-                    Statistics = new Dictionary<HitResult, int>()
-                    {
-                        [HitResult.Perfect] = body.Statistics.Perfect,
-                        [HitResult.Good] = body.Statistics.Goods,
-                        [HitResult.Great] = body.Statistics.Greats,
-                        [HitResult.Meh] = body.Statistics.Meh,
-                        [HitResult.Miss] = body.Statistics.Misses,
-                        [HitResult.Ok] = body.Statistics.Ok,
-                        [HitResult.None] = body.Statistics.None
-                    },
-                    HasReplay = false
-                }, beatmap).Total??0;   
-        }
-   
-        var score = new DbScore
-        {
-            Accuracy = body.Accuracy,
-            Mods = body.Mods.Select(mod => mod.Acronym).ToList(),
-            Rank = BeatmapUtils.ScoreRankFromString(body.Rank),
-            Statistics = body.Statistics.ToJson(),
-            UserId = user.Id,
-            BeatmapId = item.BeatmapId,
-            MaxCombo = body.MaxCombo,
-            Passed = body.Passed,
-            PerfomancePoints = pp,
-            SubmittedIn = room.Id.Value,
-            SubmittionPlaylist = item.ID,
-            SubmittedAt = DateTimeOffset.UtcNow,
-            TotalScore = body.TotalScore,
-            RuleSetId = body.RulesetId
-        };
-
-        var entry = await _context.Scores.AddAsync(score);
-
-
-        dbUser.PlayCount++;
-        var stats = ModeUtils.FetchUserStats(_context, ruleset.ShortName, user.Id);
+        if (score is null)
+            return BadRequest();
         
-
-        if (score.MaxCombo > stats.MaxCombo)
-        {
-            stats.MaxCombo = score.MaxCombo;
-        }
-
-        stats.TotalScore += score.TotalScore;
-        if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
-        {
-            stats.RankedScore += score.TotalScore;
-
-            stats.PerformancePoints += (int) Math.Floor(score.PerfomancePoints);
-            await _storage.UpdateHitAccuracy(ruleset.ShortName, user.Id, score.Accuracy);
-            
-            _taskQueue.Enqueue(async c =>
-            {
-                await _storage.UpdateRankings(ruleset.ShortName);
-            });
-        }
-        else
-        {
-            stats.PerformancePoints = 0;
-        }
-
-
-        score.Status = DbScoreStatus.OUTDATED;
-        var oldScore = await _context.Scores.FirstOrDefaultAsync(b => b.BeatmapId == item.BeatmapId && b.UserId == user.Id && b.Passed && b.Status == DbScoreStatus.BEST);
-        if (score.TotalScore > (oldScore?.TotalScore ?? 0) && score.Passed)
-        {
-            score.Status = DbScoreStatus.BEST;
-            if (oldScore is not null)
-            {
-                oldScore.Status = DbScoreStatus.OUTDATED;
-            }
-
-            if (_context.Scores.AsEnumerable().Any(c => c.UserId == user.Id && c.Passed))
-            {
-                stats.Accuracy = (float)(_context.Scores.Where(s => s.Passed && s.UserId == user.Id).Select(a => a.Accuracy * 100)
-                    .ToList().Average() / 100F);
-            }
-        }
-        
-        
-        var unrankedMods = new []{"AT", "AA", "CN", "DA"};
-        
-        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
-        {
-            score.Status = DbScoreStatus.OUTDATED;
-        }
-        
-        await _context.SaveChangesAsync();
-
-        _storage.LeaderboardCache.Remove(item.BeatmapId);
-        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
-        _storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
-        ModeUtils.StatsCache.Remove($"{ruleset.ShortName}:{user.Id}");
-        return Json(new APIScore
-        {
-            Accuracy = score.Accuracy,
-            Beatmap = await (await _resolver.FetchBeatmap(item.BeatmapId))?.ToOsu()??null,
-            beatmapSet = (await _resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet.OnlineID))?.ToBeatmapSet(),
-            Date = score.SubmittedAt,
-            Rank = Enum.GetName(score.Rank),
-            Statistics = JsonSerializer.Deserialize<object>(score.Statistics) ?? new {},
-            HasReplay = false,
-            User = await user.ToOsuUser(ruleset.ShortName),
-            MaxCombo = score.MaxCombo,
-            Mods = score.Mods.Select(s => new APIMod
-            {
-                Acronym = s,
-                Settings = new Dictionary<string, object> {}
-            }).ToArray(),
-            PP = score.PerfomancePoints,
-            TotalScore = score.TotalScore,
-            OnlineID = entry.Entity.Id,
-            RulesetID = score.RuleSetId
-        });
+        return Json(score);
     }
 }

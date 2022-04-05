@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using osu.Game.Online.API;
 using osu.Game.Online.Spectator;
 using OsuLazerServer.Database.Tables;
+using OsuLazerServer.Services.Replays;
 using OsuLazerServer.Services.Users;
 
 namespace OsuLazerServer.SpectatorClient;
@@ -11,13 +12,18 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
 {
     private IUserStorage _storage;
     private ILogger<SpectatorHub> _logger;
+    private IReplayManager _replayManager;
     private User? _user =>
         _storage.GetUser(Context.GetHttpContext().Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
 
-    public SpectatorHub(IUserStorage storage, ILogger<SpectatorHub> logger)
+    public SpectatorState State => _storage.UserStates[_user.Id];
+
+
+    public SpectatorHub(IUserStorage storage, ILogger<SpectatorHub> logger, IReplayManager replayManager)
     {
         _storage = storage;
         _logger = logger;
+        _replayManager = replayManager;
     }
 
     public override async Task OnConnectedAsync()
@@ -46,20 +52,21 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
 
     public async Task BeginPlaySession(SpectatorState state)
     {
-        _storage.UserStates.FirstOrDefault(s => s.Key == _user.Id).Value.State = SpectatedUserState.Playing;
+        _replayManager.ClearReplayFrames(_user.Id);
+        _storage.UserStates[_user.Id] = state;
         await Clients.All.UserBeganPlaying(_user.Id, state);
     }
     
-
     public async  Task SendFrameData(FrameDataBundle data)
     {
+        await _replayManager.WriteReplayData(_user.Id, State.BeatmapID??0, data, State.Mods.ToList());
         await Clients.Group(GetGroupId(_user.Id)).UserSentFrames(_user.Id, data);
     }
 
     public async Task EndPlaySession(SpectatorState state)
     {
         
-        _storage.UserStates.FirstOrDefault(s => s.Key == _user?.Id).Value.State = SpectatedUserState.Idle;
+        _storage.UserStates[_user.Id] = state;
         await Clients.All.UserFinishedPlaying(_user?.Id??0, state);
     }
 
@@ -69,18 +76,19 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
         {
             SpectatorState state = _storage.UserStates[userId];
 
-            await Clients.Caller.UserBeganPlaying(userId, state);
+            if (state.State == SpectatedUserState.Playing)
+                await Clients.Caller.UserBeganPlaying(userId, state);
         }
         catch (KeyNotFoundException)
         {
             
         }
-
         await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupId(userId));
     }
 
     public async Task EndWatchingUser(int userId)
     {
+        _replayManager.ClearReplayFrames(_user.Id);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, GetGroupId(userId));
     }
     

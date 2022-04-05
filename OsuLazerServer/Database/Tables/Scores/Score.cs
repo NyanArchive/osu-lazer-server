@@ -6,8 +6,9 @@ using OsuLazerServer.Models;
 using OsuLazerServer.Models.Response.Scores;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Utils;
-
+using LazerStatus = OsuLazerServer.Models.Response.Beatmaps.BeatmapOnlineStatus;
 namespace OsuLazerServer.Database.Tables.Scores;
+
 
 [Table("scores")]
 public class DbScore
@@ -73,7 +74,10 @@ public class DbScore
             User =
                 await (await GetUserAsync(ctx))?.ToOsuUser(Enum.GetName(typeof(RulesetId), RuleSetId) ?? "osu") ??
                 new APIUser {Id = 1, Username = "Bancho bot"},
-            HasReplay = false,
+            HasReplay = beatmap?.Status != "pending" &&
+                        beatmap?.Status != "graveyard"&&
+                        beatmap?.Status != "WIP" &&
+                        beatmap?.Status != "None",
             Mods = Mods.ToArray(),
             MaxCombo = MaxCombo,
             PP = PerfomancePoints,

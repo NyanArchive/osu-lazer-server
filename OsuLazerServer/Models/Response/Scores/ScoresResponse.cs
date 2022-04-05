@@ -13,5 +13,5 @@ public class ScoresResponse
 {
     [JsonPropertyName("scores")] public List<APIScore> Scores { get; set; }
 
-    [JsonPropertyName("userScore")] public UserScore UserScore;
+    [JsonPropertyName("userScore")] public UserScore? UserScore;
 }

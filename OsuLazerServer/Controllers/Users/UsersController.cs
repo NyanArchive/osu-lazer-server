@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Nager.Country;
 using OsuLazerServer.Attributes;
 using OsuLazerServer.Database;
@@ -164,14 +165,27 @@ public class UsersController : Controller
             .Select(val => Convert.ToInt32(val));
 
 
-        return Json(new {users = await Task.WhenAll(ids.Select(async id => await toSpectatorUser(id)))});
+        return Json(new {users = await Task.WhenAll(ids.Select(async id => await ToSpectatorUser(id)))});
     }
 
-    private async Task<APIUser> toSpectatorUser(int id)
+    private async Task<APIUser> ToSpectatorUser(int id)
     {
         var user = _context.Users.FirstOrDefault(d => d.Id == id);
 
 
         return await user?.ToOsuUser("osu", _storage);
+    }
+
+    [HttpGet("/api/v2/scores/{mode}/{id}/download")]
+    public async Task<IActionResult> DownloadReplay([FromRoute(Name = "mode")] string mode,
+        [FromRoute(Name = "id")] int id)
+    {
+        var replay = await _context.Scores.FirstOrDefaultAsync(c => c.Id == id);
+        if (replay == null)
+            return NotFound();
+
+        var file = Path.Join(Directory.GetCurrentDirectory(), "replays", $"{replay.Id}.osr");
+
+        return File(await System.IO.File.ReadAllBytesAsync(file), "application/octet-stream", $"{replay.Id}.osr");
     }
 }
