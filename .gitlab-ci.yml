@@ -32,7 +32,7 @@ deploy:
     - sed -i 's/80:80/32080:80/' docker-compose.yml
     - sed -i 's/443:443/32443:443/' docker-compose.yml
     - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
-    - sed -i '/s/\/srv\/lazer-server\/replays/.\/replays'
+    - sed -i '/s/\/srv\/lazer-server\/replays/.\/replays/'
     - docker-compose up -d
 
 alert-success:
