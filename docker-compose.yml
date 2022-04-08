@@ -3,9 +3,7 @@ version: "3.7"
 services:
   app:
     container_name: lazer-server
-    build: 
-      dockerfile: OsuLazerServer/Dockerfile
-      context: .
+    image: gitlab-registry.srv-1.kotworks.cyou/dhcpcp/osu-lazer-server:latest
     environment:
       - DB_HOST=db
       - DB_PORT=5432
