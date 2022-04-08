@@ -67,11 +67,15 @@ app.UseRouting();
 app.MapControllers();
 app.UseWebSockets();
 app.UseSentryTracing();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<MultiplayerHub>("/multiplayer");
     endpoints.MapHub<SpectatorHub>("/spectator");
+    endpoints.MapFallbackToController("Index", "Frontend");
 });
 Console.WriteLine("Updating legacy rulesets.");
 //Preloading rulesets
