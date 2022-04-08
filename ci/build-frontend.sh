@@ -3,11 +3,11 @@ git clone https://git.kotworks.cyou/DHCPCP/lazer-frontend.git
 
 cd lazer-frontend
 
-nvm use 14
+export CI=true
 # install modules
-yarn
+npm install
 
 #build
-yarn build
+npm run build
 
 mv build ..
