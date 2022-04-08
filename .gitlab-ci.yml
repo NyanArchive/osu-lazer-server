@@ -23,7 +23,9 @@ build:
     
   script:
     - chmod +x ci/build.sh
+    - chmod +x ci/build-frontend.sh
     - ci/build.sh
+    - ci/build-frontend.sh
     - docker-compose build
 deploy:
   stage: deploy
