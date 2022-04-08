@@ -4,9 +4,9 @@ git clone https://git.kotworks.cyou/DHCPCP/lazer-frontend.git
 cd lazer-frontend
 
 # install modules
-npm install
+yarn
 
 #build
-npm run build
+yarn build
 
 mv build ..
