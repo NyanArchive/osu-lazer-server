@@ -26,7 +26,8 @@ build:
     - chmod +x ci/build-frontend.sh
     - ci/build.sh
     - ci/build-frontend.sh
-    - docker-compose build
+    - docker build -t gitlab-registry.srv-1.kotworks.cyou/dhcpcp/osu-lazer-server -f OsuLazerServer/Dockerfile .
+    - docker push gitlab-registry.srv-1.kotworks.cyou/dhcpcp/osu-lazer-server
 deploy:
   stage: deploy
 
@@ -38,7 +39,7 @@ deploy:
     - sed -i 's/443:443/32443:443/' docker-compose.yml
     - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
     - sed -ie 's|./replays|/srv/lazer-server/replays|' docker-compose.yml  
-    - docker-compose up -d
+    - docker-compose up -d --force-recreate
 
 alert-success:
   stage: notification
