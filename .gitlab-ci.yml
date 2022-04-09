@@ -65,5 +65,3 @@ create-backup-task:
     - docker exec -u postgres -t lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
     - gzip -c lazer.sql > $FILENAME
     - curl -F "file=@./$FILENAME" -F "content=Backup for $(date)" $WEBHOOK_URL > null
-    
-#
