@@ -24,7 +24,7 @@ build:
   script:
     - chmod +x ci/build.sh
     - chmod +x ci/build-frontend.sh
-    - sed -ie 'api.nerinyan.pw|ko.nerinyan.pw|' OsuLazerServer/Services/Beatmaps/BeatmapSetResolverService.cs 
+    - sed -i 's/api.nerinyan.pw/ko.nerinyan.pw/' OsuLazerServer/Services/Beatmaps/BeatmapSetResolverService.cs 
     - ci/build.sh
     - ci/build-frontend.sh
     - docker build -t gitlab-registry.srv-1.kotworks.cyou/dhcpcp/osu-lazer-server -f OsuLazerServer/Dockerfile .
