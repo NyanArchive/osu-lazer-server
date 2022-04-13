@@ -24,6 +24,7 @@ build:
   script:
     - chmod +x ci/build.sh
     - chmod +x ci/build-frontend.sh
+    - sed -i 's/api.nerinyan.pw/ko.nerinyan.pw/' OsuLazerServer/Services/Beatmaps/BeatmapSetResolverService.cs 
     - ci/build.sh
     - ci/build-frontend.sh
     - docker build -t gitlab-registry.srv-1.kotworks.cyou/dhcpcp/osu-lazer-server -f OsuLazerServer/Dockerfile .
@@ -65,5 +66,3 @@ create-backup-task:
     - docker exec -u postgres -t lazer-server-db pg_dump --username=postgres -d lazer --port 5432 --host localhost > lazer.sql
     - gzip -c lazer.sql > $FILENAME
     - curl -F "file=@./$FILENAME" -F "content=Backup for $(date)" $WEBHOOK_URL > null
-    
-#
