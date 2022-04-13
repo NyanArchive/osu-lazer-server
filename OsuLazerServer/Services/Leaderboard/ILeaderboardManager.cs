@@ -22,6 +22,6 @@ public interface ILeaderboardManager
     public Task<List<RankingUser>> GetLeaderboard(string mode, string? countryCode);
     public Task<UserScore?> GetUserScore(int beatmapId, int userId);
 
-    public Task<APIScore?> ProcessScore(long token, APIScoreBody body, int beatmapId, int roomId,
+    public Task<APIScore?> ProcessScoreAsync(long token, APIScoreBody body, int beatmapId, int roomId,
         int playlistItem);
 }

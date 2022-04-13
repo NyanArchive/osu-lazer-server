@@ -42,7 +42,6 @@ public class SpectatorHub : Hub<ISpectatorClient>, ISpectatorServer
             BeatmapID = 0,
             RulesetID = 0
         });
-
         foreach (var kvp in _storage.UserStates.Where(c => c.Value.State != SpectatedUserState.Idle))
             await Clients.Caller.UserBeganPlaying(kvp.Key, kvp.Value);
         await base.OnConnectedAsync();

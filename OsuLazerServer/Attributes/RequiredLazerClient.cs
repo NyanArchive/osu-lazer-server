@@ -44,6 +44,7 @@ public class RequiredLazerClient : ActionFilterAttribute
                     context.HttpContext.Response.StatusCode = 401;
                     await context.HttpContext.Response.WriteAsJsonAsync(new {authentication = "basic"});
                     await context.HttpContext.Response.CompleteAsync(); 
+                    return;
                 }
                 storage.Users.TryAdd(token, user);
                 await next();

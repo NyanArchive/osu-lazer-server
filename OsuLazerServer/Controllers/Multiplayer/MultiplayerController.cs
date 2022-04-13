@@ -33,9 +33,26 @@ public class MultiplayerController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetRooms([FromQuery(Name = "category")] string category)
+    public async Task<IActionResult> GetRooms([FromQuery(Name = "category")] string? category = "all")
     {
         return Json(_storage.Rooms.Values.ToList());
+    }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetRoom(int id)
+    {
+        var room = _storage.Rooms.Values.FirstOrDefault(x => x.Id == id);
+        if (room == null)
+            return NotFound();
+        return Json(room);
+    }
+    
+    [HttpGet("{id}/leaderboard")]
+    public async Task<IActionResult> GetRoomLeaderboard(int id)
+    {
+        var room = _storage.Rooms.Values.FirstOrDefault(x => x.Id == id);
+        if (room == null)
+            return NotFound();
+        return Json(await Task.WhenAll(_context.Scores.Where(c => c.SubmittedIn == id).ToList().Select(async c => await c.ToOsuScore(_resolver))));
     }
 
 
@@ -55,7 +72,7 @@ public class MultiplayerController : Controller
         {
             CountActive = 0,
             CountTotal = 1,
-            RulesetIDs = new [] { 0 }
+            RulesetIDs = room.Playlist.Select(c => c.RulesetId).Distinct().ToArray()
         };
         
         //Adding playlist to memory
@@ -73,12 +90,13 @@ public class MultiplayerController : Controller
             Moderated = false,
             Name = "multi",
             Type = "public",
-            Users = new List<int> { room.Host.Id, 1 },
+            Users = new List<int> { 1 },
             ChannelId = (int) (DateTimeOffset.Now.ToUnixTimeSeconds() / 1000),
             LastMessageId = null,
             LastReadId = null
         };
         _storage.Channels.TryAdd(channel.ChannelId, channel);
+        await _storage.ForceJoinChannel(room.Host.Id, channel.ChannelId);
         room.ChannelId = channel.ChannelId;
         room.DifficultyRange = new RoomDifficultyRange
         {
@@ -87,7 +105,9 @@ public class MultiplayerController : Controller
         };
         room.CurrentUserScore = new PlaylistAggregateScore
         {
-            PlaylistItemAttempts = new ItemAttemptsCount[] { }
+            PlaylistItemAttempts = new ItemAttemptsCount[]
+            {
+            }
         };
         room.EndsAt = DateTime.Now.Add(TimeSpan.FromDays(1));
         room.Active = true;

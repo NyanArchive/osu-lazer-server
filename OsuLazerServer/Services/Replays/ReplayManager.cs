@@ -4,19 +4,14 @@ using osu.Framework.Extensions;
 using osu.Game.Online.API;
 using osu.Game.Online.Spectator;
 using osu.Game.Replays.Legacy;
-using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
-using osu.Shared.Serialization;
-using OsuLazerServer.Database.Tables.Scores;
 using OsuLazerServer.Services.Beatmaps;
 using OsuLazerServer.Services.Rulesets;
 using OsuLazerServer.Services.Users;
-using SharpCompress.Compressors;
 using SharpCompress.Compressors.LZMA;
-using HitResult = osu.Game.Rulesets.Scoring.HitResult;
 using SerializationWriter = osu.Game.IO.Legacy.SerializationWriter;
-using SerializationReader = osu.Game.IO.Legacy.SerializationReader;
+using OsuLazerServer.ThirdParty;
 
 namespace OsuLazerServer.Services.Replays;
 
@@ -80,7 +75,10 @@ public class ReplayManager : IReplayManager, IServiceScope
 
         var beatmap = await _resolver.FetchBeatmap(replay.BeatmapId);
         var ruleset = rulesetManager.GetRuleset(info.RulesetID);
-        ;
+
+        LegacyReplayFrame[] replayFrames = new LegacyReplayFrame[replay.Frames.Count];
+        replay.Frames.CopyTo(replayFrames);
+
         var stats = replay.Bundle.Header.Statistics;
         writer.Write((byte) replay.RulesetId);
         writer.Write(30000000);
@@ -99,18 +97,20 @@ public class ReplayManager : IReplayManager, IServiceScope
         writer.Write((int) ruleset.ConvertToLegacyMods(replay.Mods.Select(c => c.ToMod(ruleset)).ToArray())); // mods
         writer.Write(string.Empty);
         writer.Write(DateTime.Now);
+        
         if (replay.Frames.Count > 0)
         {
-            var frames = "";
+            var frames = new StringBuilder();
 
             long lastFrameTime = 0;
-            foreach (var frame in replay.Frames)
+            
+            foreach (var frame in replayFrames)
             {
-                frames += $"{(long)frame.Time - lastFrameTime}|{Format(Math.Abs(frame.Position.X))}|{Format(Math.Abs(frame.Position.Y))}|{(int)frame.ButtonState},";
+                frames.Append($"{(long)frame.Time - lastFrameTime}|{frame.Position.X}|{frame.Position.Y}|{(int)frame.ButtonState},");
                 lastFrameTime = (long)frame.Time;
             }
 
-            var content = new ASCIIEncoding().GetBytes(frames);
+            var content = new ASCIIEncoding().GetBytes(frames.ToString());
             using (var outStream = new MemoryStream())
             {
                 using (var lzma = new LzmaStream(new LzmaEncoderProperties(false, 1 << 21, 255), false, outStream))
@@ -128,7 +128,7 @@ public class ReplayManager : IReplayManager, IServiceScope
         }
 
 
-        writer.Write((long)info.OnlineID);
+        writer.Write(info.OnlineID);
         return ms;
     }
 

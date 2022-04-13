@@ -30,7 +30,6 @@ public class LazerContext : DbContext
         optionsBuilder.UseNpgsql(
             $"Host=localhost;Port=5432;Database=lazer;Username=postgres;Password=123321");
 #endif
-
     }
     
     public async Task<User> CreateBot()

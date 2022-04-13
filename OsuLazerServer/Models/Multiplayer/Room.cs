@@ -49,7 +49,7 @@ public class Room : ICloneable
     public int? ParticipantCount { get; set; }
 
     [JsonPropertyName("password")]
-    public string Password { get; set; }
+    public string? Password { get; set; }
 
     [JsonPropertyName("ends_at")]
     public DateTime? EndsAt { get; set; }
@@ -64,8 +64,11 @@ public class Room : ICloneable
     public string QueueMode { get; set; }
 
     [JsonPropertyName("duration")]
-    public TimeSpan? Duration { get; set; }
-    
+    public int? duration { get; set; }
+
+    [JsonIgnore]
+    public TimeSpan Duration => TimeSpan.FromSeconds(duration ?? 0);
+
     [JsonPropertyName("max_attemps")]
     public int MaxAttempts { get; set; }
     

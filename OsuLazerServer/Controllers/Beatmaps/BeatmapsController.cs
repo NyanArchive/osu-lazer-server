@@ -2,6 +2,7 @@
 using BackgroundQueue;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using osu.Framework.Timing;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
@@ -100,7 +101,7 @@ public class BeatmapsController : Controller
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
 
-        var scoreToken = DateTimeOffset.Now.ToUnixTimeSeconds();
+        var scoreToken = _storage.ScoreTokens.Any() ? _storage.ScoreTokens.Max(c => c.Key) + 1: 1 ;
         _storage.ScoreTokens.Add(scoreToken, user);
 
         return Json(new APIScoreToken
@@ -116,11 +117,14 @@ public class BeatmapsController : Controller
     [RequiredLazerClient]
     public async Task<IActionResult> SubmitScoreByToken([FromServices] ILeaderboardManager manager, [FromRoute(Name = "submitid")] int submitionToken, [FromRoute(Name = "id")] int beatmapId, [FromBody] APIScoreBody body)
     {
-        var score = await manager.ProcessScore(submitionToken, body, beatmapId, 0, 0);
+        var clock = new StopwatchClock(true);
+        var score = await manager.ProcessScoreAsync(submitionToken, body, beatmapId, 0, 0);
 
         if (score is null)
             return BadRequest();
         
+        clock.Stop();
+        Console.WriteLine($"Submission finished in {clock.Elapsed.TotalSeconds}");
         return Json(score);
     }
     
@@ -160,7 +164,7 @@ public class BeatmapsController : Controller
         if (playlistItem is null)
             return BadRequest();
         
-        var score = await manager.ProcessScore(submitionToken, body, playlistItem.BeatmapId, roomId, playlistItemId);
+        var score = await manager.ProcessScoreAsync(submitionToken, body, playlistItem.BeatmapId, roomId, playlistItemId);
 
         if (score is null)
             return BadRequest();

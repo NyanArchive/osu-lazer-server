@@ -475,8 +475,8 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         {
             await _storage.AddUpdate(uId, new Update
             {
-                Channels = new List<Channel> {_storage.Channels[channelId]},
-                Messages = new List<Message>()
+                Channels = new List<Channel> {},
+                Messages = new List<Message>
                 {
                     new Message
                     {

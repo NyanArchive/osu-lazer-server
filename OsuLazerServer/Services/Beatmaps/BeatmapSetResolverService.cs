@@ -24,7 +24,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         using var scope = ServiceProvider.CreateScope();
         var cache = scope.ServiceProvider.GetService<IMemoryCache>();
         
-        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search?m={mode}&p={offset}&s={status}&nsfw={nsfw}&e=&q={query}&sort=ranked_desc&creator=0");
 
         if (!request.IsSuccessStatusCode)
             return null;
@@ -60,7 +60,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
             return (BeatmapSet) beatmapsets!;
         }
 
-        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmapset/{setId}");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmapset/{setId}");
 
         var body = JsonSerializer.Deserialize<BeatmapSet>(await request.Content.ReadAsStringAsync());
         if (body is not null)
@@ -85,7 +85,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
             return (Beatmap) beatmap!;
         }
 
-        var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmap/{beatmapId}");
+        var request = await (new HttpClient()).GetAsync($"https://rus.nerinyan.moe/search/beatmap/{beatmapId}");
 
         
         if (!request.IsSuccessStatusCode)

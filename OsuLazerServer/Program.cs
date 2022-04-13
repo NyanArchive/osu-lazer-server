@@ -75,7 +75,9 @@ app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<MultiplayerHub>("/multiplayer");
     endpoints.MapHub<SpectatorHub>("/spectator");
+    #if !DEBUG
     endpoints.MapFallbackToController("Index", "Frontend");
+    #endif
 });
 Console.WriteLine("Updating legacy rulesets.");
 //Preloading rulesets

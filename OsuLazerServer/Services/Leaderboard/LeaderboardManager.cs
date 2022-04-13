@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Text.Json;
 using BackgroundQueue;
+using BackgroundQueue.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using osu.Game.Online.API;
@@ -116,17 +117,19 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
     }
 
 
-    public async Task<APIScore?> ProcessScore(long token, APIScoreBody body, int beatmapId, int roomId, int playlistItem)
+    public async Task<APIScore?> ProcessScoreAsync(long token, APIScoreBody body, int beatmapId, int roomId, int playlistItem)
     {
         using var scope = ServiceProvider.CreateScope();
         
-        var db = scope.ServiceProvider.GetService<LazerContext>();
-        var storage = scope.ServiceProvider.GetService<IUserStorage>();
-        var rulesetManager = scope.ServiceProvider.GetService<IRulesetManager>();
-        var resolver = scope.ServiceProvider.GetService<IBeatmapSetResolver>();
-        var taskQueue = scope.ServiceProvider.GetService<IBackgroundTaskQueue>();
-        var cache = scope.ServiceProvider.GetService<IMemoryCache>();
-        var replayManager = scope.ServiceProvider.GetService<IReplayManager>();
+        var db = new LazerContext();
+        
+        //TODO: +~500ms to response.
+        var storage = scope.ServiceProvider.GetService<IUserStorage>()!;
+        var rulesetManager = scope.ServiceProvider.GetService<IRulesetManager>()!;
+        var resolver = scope.ServiceProvider.GetService<IBeatmapSetResolver>()!;
+        var taskQueue = scope.ServiceProvider.GetService<IBackgroundTaskQueue>()!;
+        var cache = scope.ServiceProvider.GetService<IMemoryCache>()!;
+        var replayManager = scope.ServiceProvider.GetService<IReplayManager>()!;
 
         if (!storage.ScoreTokens.ContainsKey(token))
             return null;
@@ -134,13 +137,17 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
         var user = storage.ScoreTokens[token];
 
 
-        var ruleset = rulesetManager.GetRuleset(body.RulesetId).RulesetInfo;
+        var ruleset = rulesetManager.GetRuleset(body.RulesetId);
 
         var mirrorBeatmap = await (await resolver.FetchBeatmap(beatmapId)).ToOsu();
         var beatmapStream = await BeatmapUtils.GetBeatmapStream(beatmapId);
         var beatmap = new ProcessorWorkingBeatmap(beatmapStream, beatmapId);
 
         var dbUser = await db.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        if (dbUser is null)
+            return null;
+        
         double pp = 0;
         var scoreInfo = new ScoreInfo
         {
@@ -148,11 +155,11 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
             Combo = body.MaxCombo,
             MaxCombo = body.MaxCombo,
             User = new APIUser {Username = "owo"},
-            Ruleset = ruleset,
+            Ruleset = ruleset.RulesetInfo,
             Date = DateTimeOffset.UtcNow,
             Passed = body.Passed,
             TotalScore = body.TotalScore,
-            Statistics = new Dictionary<HitResult, int>()
+            Statistics = new Dictionary<HitResult, int>
             {
                 [HitResult.Perfect] = body.Statistics.Perfect,
                 [HitResult.Good] = body.Statistics.Goods,
@@ -166,7 +173,7 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
         };
         if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
         {
-            pp = ruleset.CreateInstance().CreatePerformanceCalculator()
+            pp = ruleset.RulesetInfo.CreateInstance().CreatePerformanceCalculator()
                 ?.Calculate(scoreInfo, beatmap).Total ?? 0;
         }
         
@@ -195,9 +202,9 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
 
         IUserStats stats;
 
-        if (ruleset.OnlineID > 3)
+        if (ruleset.RulesetInfo.OnlineID > 3)
         {
-            stats = await user.FetchRulesetStats(ruleset);
+            stats = await user.FetchRulesetStats(ruleset.RulesetInfo);
         }
         else
         {
@@ -241,25 +248,27 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
                     .ToList().Average() / 100F);
             }
         }
-
-
-        var unrankedMods = new[] {"AT", "AA", "CN", "DA", "RX"};
-
-        if (body.Mods.Any(mod => unrankedMods.Contains(mod.Acronym)))
+        
+        if (body.Mods.Any(mod => !ruleset.AllMods.FirstOrDefault(m => m.Acronym == mod.Acronym)?.CreateInstance().UserPlayable??true))
         {
             score.Status = DbScoreStatus.OUTDATED;
         }
 
         await db.SaveChangesAsync();
-        taskQueue.Enqueue(async c =>
-        {
-            await storage.UpdateRankings(ruleset.ShortName);
-                
-            //update cache
 
-            cache.Remove($"{beatmapId}_{BeatmapLeaderboardType.Global}__{ruleset.OnlineID}_{50}");
-            cache.Remove($"{beatmapId}_{BeatmapLeaderboardType.Country}_{dbUser.Country}_{ruleset.OnlineID}_{50}");
-        });
+        if (score.Passed)
+        {
+            taskQueue.Enqueue(async c =>
+            {
+                await storage.UpdateRankings(ruleset.ShortName);
+                
+                //update cache
+
+                cache.Remove($"{beatmapId}_{BeatmapLeaderboardType.Global}__{ruleset.RulesetInfo.OnlineID}_{50}");
+                cache.Remove($"{beatmapId}_{BeatmapLeaderboardType.Country}_{dbUser.Country}_{ruleset.RulesetInfo.OnlineID}_{50}");
+            });
+        }
+
         storage.LeaderboardCache.Remove(beatmapId);
         storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:perfomance");
         storage.GlobalLeaderboardCache.Remove($"{ruleset.ShortName}:score");
@@ -269,27 +278,31 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
                         mirrorBeatmap.Status != LazerStatus.BeatmapOnlineStatus.Graveyard &&
                         mirrorBeatmap.Status != LazerStatus.BeatmapOnlineStatus.WIP &&
                         mirrorBeatmap.Status != LazerStatus.BeatmapOnlineStatus.None;
-        if (hasReplay && score.Passed)
+        taskQueue.Enqueue(async c =>
         {
-            using (var writter = File.OpenWrite(Path.Join("replays", $"{entry.Entity.Id}.osr")))
+            if (hasReplay && score.Passed)
             {
-                scoreInfo.OnlineID = entry.Entity.Id;
-                var replayStream = await replayManager.GetReplayLegacyDataAsync(user.Id, scoreInfo);
-                replayStream.Seek(0, SeekOrigin.Begin);
-                await replayStream.CopyToAsync(writter);
+                using (var writter = File.OpenWrite(Path.Join("replays", $"{entry.Entity.Id}.osr")))
+                {
+                    scoreInfo.OnlineID = entry.Entity.Id;
+                    var replayStream = await replayManager.GetReplayLegacyDataAsync(user.Id, scoreInfo);
+                    replayStream.Seek(0, SeekOrigin.Begin);
+                    await replayStream.CopyToAsync(writter, c);
             
-                writter.Close();
-                replayManager.ClearReplayFrames(user.Id);
+                    writter.Close();
+                    replayManager.ClearReplayFrames(user.Id);
+                }
             }
-        }
+        });
+        
 
         return new APIScore
         {
             Accuracy = score.Accuracy,
-            Beatmap = await (await resolver.FetchBeatmap(beatmapId))?.ToOsu() ?? null,
-            beatmapSet = (await resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet.OnlineID))?.ToBeatmapSet(),
+            Beatmap = await (await resolver.FetchBeatmap(beatmapId))?.ToOsu()!,
+            beatmapSet = (await resolver.FetchSetAsync(beatmap.BeatmapInfo.BeatmapSet?.OnlineID??0))?.ToBeatmapSet(),
             Date = score.SubmittedAt,
-            Rank = Enum.GetName(score.Rank),
+            Rank = Enum.GetName(score.Rank)??"F",
             Statistics = JsonSerializer.Deserialize<object>(score.Statistics) ?? new { },
             HasReplay =  hasReplay && score.Passed,
             User = await user.ToOsuUser(ruleset.ShortName),
