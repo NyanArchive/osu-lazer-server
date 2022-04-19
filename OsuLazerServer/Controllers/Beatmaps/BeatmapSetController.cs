@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using OsuLazerServer.Database;
 using OsuLazerServer.Services.Beatmaps;
 
@@ -33,7 +33,7 @@ public class BeatmapSetController : Controller
     [HttpGet("download")]
     public async Task<IActionResult> DownloadBeatmapSet([FromRoute(Name = "setId")] int setId)
     {
-        return Redirect($"https://api.nerina.pw/d/{setId}");
+        return Redirect($"https://api.nerinyan.moe/d/{setId}");
     }
     
     
