@@ -32,6 +32,7 @@ public class UserStorage : IUserStorage, IServiceScope
     public Dictionary<int, SpectatorState> UserStates { get; set; } = new();
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; } = new();
     public Dictionary<int, PlaylistItem> PlaylistItems { get; set; } = new();
+    public Dictionary<string, int> BeatmapCursorOffset { get; set; } = new();
     public IServiceScope Scope { get; set; }
     public IServiceProvider ServiceProvider { get; }
     public UserStorage(IServiceProvider scope)

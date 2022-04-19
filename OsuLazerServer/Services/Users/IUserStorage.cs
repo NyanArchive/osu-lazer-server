@@ -25,6 +25,7 @@ public interface IUserStorage
     public Dictionary<int, SpectatorState> UserStates { get; set; }
     public Dictionary<int, MultiplayerRoom> HubRooms { get; set; }
     public Dictionary<int, PlaylistItem> PlaylistItems { get; set; }
+    public Dictionary<string, int> BeatmapCursorOffset { get; set; }
 
     #region Channels
     public Task SendMessageToUser(User user, string message, bool isAction);
