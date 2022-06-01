@@ -49,7 +49,7 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
             ruleset = DEFAULT_RULESET;
 
         if (type == BeatmapLeaderboardType.Country && string.IsNullOrEmpty(country))
-            return null;
+            return new List<DbScore>();
         using var scope = ServiceProvider.CreateScope();
 
         var cache = scope.ServiceProvider.GetService<IMemoryCache>();
@@ -65,7 +65,7 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
                 c.score.BeatmapId == beatmapId && c.score.RuleSetId == ruleset.OnlineID).ToList();
 
         if (scores is null)
-            return null;
+            return new List<DbScore>();
         var leaderboard = new List<DbScore>();
         switch (type)
         {
