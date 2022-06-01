@@ -62,12 +62,12 @@ public class DbScore
     public async Task<APIScore> ToOsuScore(IBeatmapSetResolver? resolver = null)
     {
         var ctx = new LazerContext();
-        var beatmap = resolver is not null ? (await resolver.FetchBeatmap(BeatmapId)) : null;
+        var beatmap = resolver is not null ? await resolver.FetchBeatmap(BeatmapId) : null;
         return new APIScore
         {
             Accuracy = Accuracy,
-            Beatmap = beatmap is not null ? await beatmap?.ToOsu() : null,
-            beatmapSet = resolver is not null ? (await resolver.FetchSetAsync(beatmap.BeatmapsetId)).ToBeatmapSet() : null,
+            Beatmap = beatmap is not null && beatmap is not null ? await beatmap.ToOsu() : null,
+            beatmapSet = resolver is not null && beatmap is not null ? (await resolver.FetchSetAsync(beatmap.BeatmapsetId))?.ToBeatmapSet() : null,
             Date = SubmittedAt,
             Rank = ModeUtils.CalculateRank(this),
             Statistics = HitResultStats.FromJson(Statistics).ToOsu(),
