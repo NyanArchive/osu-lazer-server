@@ -2,6 +2,7 @@
 using System.Text.Json;
 using BackgroundQueue;
 using BackgroundQueue.Generic;
+using Microsoft.DotNet.PlatformAbstractions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace OsuLazerServer.Services.Beatmaps;
@@ -28,6 +29,11 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
 
         if (!request.IsSuccessStatusCode)
             return null;
+        
+        if (Environment.GetEnvironmentVariable("DEBUG") == "1")
+        {
+            Console.WriteLine(await request.Content.ReadAsStringAsync());
+        }
         var body = JsonSerializer.Deserialize<List<BeatmapSet>>(await request.Content.ReadAsStringAsync());
         
         var background = Scope.ServiceProvider.GetService<IBackgroundTaskQueue>();
@@ -61,7 +67,10 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         }
 
         var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmapset/{setId}");
-
+        if (Environment.GetEnvironmentVariable("DEBUG") == "1")
+        {
+            Console.WriteLine(await request.Content.ReadAsStringAsync());
+        }
         var body = JsonSerializer.Deserialize<BeatmapSet>(await request.Content.ReadAsStringAsync());
         if (body is not null)
         {
@@ -87,7 +96,11 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
 
         var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search/beatmap/{beatmapId}");
 
-        
+        if (Environment.GetEnvironmentVariable("DEBUG") == "1")
+        {
+            Console.WriteLine(await request.Content.ReadAsStringAsync());
+        }
+
         if (!request.IsSuccessStatusCode)
             return null;
         var body = JsonSerializer.Deserialize<Beatmap>(await request.Content.ReadAsStringAsync());

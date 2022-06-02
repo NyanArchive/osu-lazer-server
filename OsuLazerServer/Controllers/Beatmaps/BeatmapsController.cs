@@ -72,22 +72,31 @@ public class BeatmapsController : Controller
     
     [HttpGet("scores")]
     [RequiredLazerClient]
-    public async Task<IActionResult> GetScoresAsync([FromServices] ILeaderboardManager manager, [FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
+    public async Task<IActionResult> GetScoresAsync([FromServices] ILogger<BeatmapsController> logger, [FromServices] ILeaderboardManager manager, [FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
     {
         var user = _storage.Users[Request.Headers["Authorization"].ToString().Replace("Bearer ", "")];
         
         var beatmap = await _resolver.FetchBeatmap(beatmapId);
-        
+
+
+
         if (beatmap is null)
+        {
+            logger.LogWarning($"Beatmap {beatmapId} not found.");
             return NotFound(new { error = "No leaderboard found" });
-        
+        }
+
         var ruleset = await _rulesetManager.GetRulesetByName(mode);
         var leaderboardType = (BeatmapLeaderboardType) Enum.Parse(typeof(BeatmapLeaderboardType), char.ToUpper(type[0]) + type.Substring(1));
         var leaderboard = await manager.GetBeatmapLeaderboard(beatmapId, leaderboardType, leaderboardType == BeatmapLeaderboardType.Country ? user.Country : null, ruleset.RulesetInfo);
-        
+
         if (leaderboard is null)
+        {
+            logger.LogWarning($"Leaderboard {beatmapId} is null.");
+  
             return NotFound(new { error = "No leaderboard found" });
-        
+        }
+
         return Json(new ScoresResponse
         {
             Scores = (await Task.WhenAll(leaderboard.Select(c => c.ToOsuScore(_resolver)))).ToList(),
