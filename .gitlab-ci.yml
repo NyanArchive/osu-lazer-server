@@ -38,7 +38,7 @@ deploy:
     - sed -i 's/80:80/32080:80/' docker-compose.yml
     - sed -i 's/443:443/32443:443/' docker-compose.yml
     - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
-    - sed -i 's/api.nerinyan.moe/mirror.dhcpcd.xyz' OsuLazerServer/Services/Beatmaps/BeatmapSetResolverService.cs 
+    - sed -i 's/api.nerinyan.moe/mirror.dhcpcd.xyz/' OsuLazerServer/Services/Beatmaps/BeatmapSetResolverService.cs 
     - sed -ie 's|./replays|/srv/lazer-server/replays|' docker-compose.yml  
     - docker-compose up -d --force-recreate
 
