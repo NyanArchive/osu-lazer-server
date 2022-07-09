@@ -117,7 +117,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
         if (_user.Id == room.Host.UserID)
             room.Host.State = newState;
 
-        if (room.Users.All(c => c.State == MultiplayerUserState.Loaded || c.State == MultiplayerUserState.Spectating))
+        if (room.Users.All(c => c.State == MultiplayerUserState.ReadyForGameplay || c.State == MultiplayerUserState.Spectating))
         {
             foreach (var user in room.Users)
             {
@@ -130,7 +130,7 @@ public class MultiplayerHub : Hub<IMultiplayerClient>, IMultiplayerServer
                         : MultiplayerUserState.Playing);
             }
 
-            await Clients.Group(GetGroupId(room.RoomID)).MatchStarted();
+            await Clients.Group(GetGroupId(room.RoomID)).GameplayStarted();
 
             room.State = MultiplayerRoomState.Playing;
         }
