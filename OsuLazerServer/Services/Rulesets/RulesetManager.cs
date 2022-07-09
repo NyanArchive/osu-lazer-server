@@ -106,7 +106,7 @@ public class RulesetManager : IRulesetManager
 
                 if (fileHash != hashValue)
                 {
-                    Console.WriteLine($"{fileEntry.Name} is corrupted");
+                    Console.WriteLine($"{fileEntry.Name} is corrupted (Local: {fileHash}, Remote: {hashValue})");
                     continue;
                 }
                 
