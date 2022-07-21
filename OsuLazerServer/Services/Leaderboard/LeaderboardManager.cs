@@ -168,8 +168,7 @@ public class LeaderboardManager : ILeaderboardManager, IServiceScope
                 [HitResult.Miss] = body.Statistics.Misses,
                 [HitResult.Ok] = body.Statistics.Ok,
                 [HitResult.None] = body.Statistics.None
-            },
-            HasReplay = false
+            }
         };
         if (mirrorBeatmap.Status == LazerStatus.BeatmapOnlineStatus.Ranked)
         {

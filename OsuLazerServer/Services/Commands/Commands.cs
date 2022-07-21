@@ -127,8 +127,7 @@ public class Commands
                                 [HitResult.Miss] = stats.Misses,
                                 [HitResult.Ok] = stats.Ok,
                                 [HitResult.None] = stats.None
-                            },
-                            HasReplay = false
+                            }
                         }, beatmap).Total ?? 0;
                     }
 
