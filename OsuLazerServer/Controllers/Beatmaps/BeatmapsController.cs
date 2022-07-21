@@ -70,7 +70,7 @@ public class BeatmapsController : Controller
         return Json(set.ToBeatmapSet());
     }
     
-    [HttpGet("scores")]
+    [HttpGet("solo-scores")]
     [RequiredLazerClient]
     public async Task<IActionResult> GetScoresAsync([FromServices] ILogger<BeatmapsController> logger, [FromServices] ILeaderboardManager manager, [FromRoute(Name = "id")] int beatmapId, [FromQuery(Name = "type")] string type, [FromQuery(Name = "mode")] string mode)
     {
