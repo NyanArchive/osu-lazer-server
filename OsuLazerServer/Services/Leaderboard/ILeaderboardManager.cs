@@ -11,7 +11,7 @@ public enum BeatmapLeaderboardType
 {
     Global,
     Country,
-    Friends
+    Friend
 }
 
 public interface ILeaderboardManager
