@@ -30,6 +30,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         if (!request.IsSuccessStatusCode)
             return null;
 
+        Console.WriteLine(await request.Content.ReadAsStringAsync());
         var body = JsonSerializer.Deserialize<List<BeatmapSet>>(await request.Content.ReadAsStringAsync());
         
         var background = Scope.ServiceProvider.GetService<IBackgroundTaskQueue>();
@@ -63,7 +64,12 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
         }
 
         var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search?q={setId}&option=s");
+
+		Console.WriteLine(await request.Content.ReadAsStringAsync());
+        
         var body = JsonSerializer.Deserialize<List<BeatmapSet>>(await request.Content.ReadAsStringAsync()).FirstOrDefault();
+
+      
         if (body is not null)
         {
             foreach (var beatmap in body.Beatmaps)
@@ -88,6 +94,7 @@ public class BeatmapSetResolverService : IBeatmapSetResolver, IServiceScope
 
         var request = await (new HttpClient()).GetAsync($"https://api.nerinyan.moe/search?q={beatmapId}&option=m");
 
+        Console.WriteLine(await request.Content.ReadAsStringAsync());
         if (!request.IsSuccessStatusCode)
             return null;
         var body = JsonSerializer.Deserialize<List<Beatmap>>(await request.Content.ReadAsStringAsync()).FirstOrDefault();

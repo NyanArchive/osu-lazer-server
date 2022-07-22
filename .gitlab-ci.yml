@@ -39,6 +39,7 @@ deploy:
     - sed -i 's/443:443/32443:443/' docker-compose.yml
     - sed -i 's/5432:5432/5435:5432/' docker-compose.yml
     - sed -ie 's|./replays|/srv/lazer-server/replays|' docker-compose.yml  
+    - sed -i 's/api.nerinyan.moe/mirror.dhcpcd.xyz'
     - docker-compose up -d --force-recreate
 
 alert-success:
